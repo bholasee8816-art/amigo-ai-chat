@@ -4,8 +4,6 @@ A complete, browser-based AI assistant in **one HTML file**. No build step, no s
 
 Live demo (GitHub Pages): https://bholasee8816-art.github.io/amigo-ai-chat/
 
-![Amigo — light and dark theme](screenshot.png)
-
 ---
 
 ## Highlights
@@ -15,6 +13,7 @@ Live demo (GitHub Pages): https://bholasee8816-art.github.io/amigo-ai-chat/
 - **Deep Search** — press the globe button and the app checks several big sites at once (Wikipedia, DuckDuckGo, Stack Overflow, Hacker News, Open Library, Crossref, GitHub, Open-Meteo weather), then answers with clickable source links.
 - **Pasted links are read** — paste any URL and the app fetches that page and summarises it.
 - **Browser-side data tools** — drop in a CSV for a data profile, or run a funnel analysis, trend chart, segmentation and an A/B test calculator right in the page.
+- **Image generation** — ask for a picture ("draw me…") or press the 🎨 button, and the app draws it right in the chat, with a download link. Free and keyless (uses Puter).
 - **ChatGPT-style interface** — clean, minimal, with a light/dark theme toggle that remembers your choice.
 - **Free by default** — the default provider is Puter, which needs **no API key**. Gemini, Groq, OpenRouter and any OpenAI-compatible endpoint can be added from Settings.
 - **Private** — everything runs in your browser. Chats and settings live in your browser's `localStorage`.
