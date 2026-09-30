@@ -103,6 +103,7 @@ header{display:flex; align-items:center; gap:10px; padding:12px 0 10px}
 .src{display:inline-flex; align-items:center; gap:5px; font-size:.72rem; color:var(--ink); background:var(--hover); border:1px solid var(--line); border-radius:99px; padding:4px 11px; text-decoration:none; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .src:hover{background:var(--line)}
 .srcmeta{font-size:.7rem; color:var(--muted); margin-top:11px; white-space:normal}
+.fallbacknote{margin-top:10px; font-size:.72rem; color:var(--muted); white-space:normal}
 .searching{font-size:.8rem; color:var(--muted); display:inline-flex; align-items:center; gap:7px}
 .searching i{width:13px; height:13px; border:2px solid var(--muted); border-right-color:transparent; border-radius:50%; display:inline-block; animation:chakraspin .8s linear infinite}
 #send{
@@ -317,7 +318,7 @@ body.dark .hero .hstar{filter:drop-shadow(0 0 10px rgba(127,176,255,.35))}
       <div class="prov">
         <label><input type="radio" name="prov" value="puter" checked>
           <span><span class="pn">Puter <span style="color:#188038;font-size:.72rem">— free, no API key</span></span>
-          <span class="pd" style="display:block">On first use a small sign-in popup may appear (a free puter.com account).</span></span>
+          <span class="pd" style="display:block">On first use a small sign-in popup may appear (a free puter.com account). Leave this selected and you never have to change anything: if you also add an API key below, your provider is tried first and Puter answers automatically whenever it does not.</span></span>
         </label>
         <label><input type="radio" name="prov" value="gemini">
           <span><span class="pn">Google Gemini</span>
@@ -885,6 +886,7 @@ async function send(){
     chatEl.append(nw);
     scrollDown();
   }
+  let fellBackFrom = "";
   try {
     if (usedProvider === "puter"){
       if (typeof puter === "undefined") throw new Error("Puter failed to load — check your internet connection.");
@@ -895,21 +897,49 @@ async function send(){
         if (t){ reply += (typeof t === "string" ? t : String(t)); bub.textContent = reply; scrollDown(); }
       }
       if (!reply) throw new Error("Empty reply — please try again.");
-    } else if (usedProvider === "gemini"){
-      reply = await callGemini(sys, msgs);
     } else {
-      const baseUrl = usedProvider === "groq" ? GROQ_URL : (usedProvider === "openrouter" ? OR_URL : settings.baseUrl);
-      const model = usedProvider === "groq" ? (settings.model || GROQ_MODEL) : (usedProvider === "openrouter" ? (settings.model || OR_MODEL) : (settings.model || "gpt-4o-mini"));
-      reply = await callOpenAICompatible(baseUrl, model, msgs);
+      /* your chosen provider runs first… */
+      try {
+        if (usedProvider === "gemini"){
+          reply = await callGemini(sys, msgs);
+        } else {
+          const baseUrl = usedProvider === "groq" ? GROQ_URL : (usedProvider === "openrouter" ? OR_URL : settings.baseUrl);
+          const model = usedProvider === "groq" ? (settings.model || GROQ_MODEL) : (usedProvider === "openrouter" ? (settings.model || OR_MODEL) : (settings.model || "gpt-4o-mini"));
+          reply = await callOpenAICompatible(baseUrl, model, msgs);
+        }
+      } catch(perr){
+        /* …and if it does not answer, we quietly answer through free Puter instead.
+           No trip to Settings, no switching — both work together. */
+        if (typeof puter === "undefined") throw perr;
+        fellBackFrom = usedProvider === "gemini" ? "Gemini" : (usedProvider === "groq" ? "Groq" : (usedProvider === "openrouter" ? "OpenRouter" : "Your provider"));
+        usedProvider = "puter";
+        reply = "";
+        bub.innerHTML = '<span class="searching"><i></i> ' + fellBackFrom + ' did not answer — trying free Puter…</span>';
+        const stream = await callPuter(msgs);
+        bub.innerHTML = "";
+        for await (const part of stream){
+          const t = part && (part.text || (part.message && part.message.content));
+          if (t){ reply += (typeof t === "string" ? t : String(t)); bub.textContent = reply; scrollDown(); }
+        }
+        if (!reply) throw perr;
+      }
     }
     bub.innerHTML = mdLite(reply);
+    if (fellBackFrom){
+      const fn = document.createElement("div");
+      fn.className = "fallbacknote";
+      fn.textContent = "ℹ️ " + fellBackFrom + " did not answer, so this reply came from free Puter.";
+      bub.append(fn);
+    }
     if (sources) addSources(bub, sources);
     curHistory().push({ role: "assistant", content: reply, sources: sources || null });
     histSave();
   } catch(err){
     bub.classList.add("err");
-    bub.textContent = "⚠️ " + (err && err.message ? err.message : "Something went wrong.") +
-      (usedProvider === "puter" ? "\n\nIf the Puter sign-in popup was blocked, click the small popup-blocked icon in the address bar, allow it, then send again." : "\n\nOpen Settings ⚙️ and pick 'Puter — free, no API key' (easiest), or double-check your key/model.");
+    const extra = fellBackFrom
+      ? "\n\n(" + fellBackFrom + " and free Puter both did not answer — please try again in a moment.)"
+      : (usedProvider === "puter" ? "\n\nIf the Puter sign-in popup was blocked, click the small popup-blocked icon in the address bar, allow it, then send again." : "\n\nOpen Settings ⚙️ and check your key/model — or just leave Puter selected, it needs no key.");
+    bub.textContent = "⚠️ " + (err && err.message ? err.message : "Something went wrong.") + extra;
     const rb = document.createElement("button");
     rb.className = "retrybtn";
     rb.textContent = "↻ Try again";
