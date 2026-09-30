@@ -104,6 +104,12 @@ header{display:flex; align-items:center; gap:10px; padding:12px 0 10px}
 .src:hover{background:var(--line)}
 .srcmeta{font-size:.7rem; color:var(--muted); margin-top:11px; white-space:normal}
 .fallbacknote{margin-top:10px; font-size:.72rem; color:var(--muted); white-space:normal}
+/* generated images */
+.imgwrap{margin-top:10px}
+.genimg{display:block; max-width:100%; max-height:520px; border-radius:14px; border:1px solid var(--line)}
+.imgcap{font-size:.72rem; color:var(--muted); margin-top:8px; white-space:normal; display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.dlbtn{font-size:.74rem; color:var(--ink); background:var(--hover); border:1px solid var(--line); border-radius:10px; padding:5px 12px; text-decoration:none}
+.dlbtn:hover{background:var(--line)}
 .searching{font-size:.8rem; color:var(--muted); display:inline-flex; align-items:center; gap:7px}
 .searching i{width:13px; height:13px; border:2px solid var(--muted); border-right-color:transparent; border-radius:50%; display:inline-block; animation:chakraspin .8s linear infinite}
 #send{
@@ -249,6 +255,7 @@ body.dark .hero .hstar{filter:drop-shadow(0 0 10px rgba(127,176,255,.35))}
   <div class="composer">
     <button id="attach" class="toolbtn" title="Upload CSV data (for analysis)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg></button>
     <button id="abBtn" class="toolbtn" title="A/B test calculator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3h5"/><path d="M10.5 3v6.2L5.3 18a1.7 1.7 0 0 0 1.5 2.6h10.4a1.7 1.7 0 0 0 1.5-2.6L13.5 9.2V3"/><path d="M7.6 14.5h8.8"/></svg></button>
+    <button id="btnImg" class="toolbtn" title="Image generation — describe a picture and the app draws it (free, no key)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.6-.3-1-.6-1.4-.3-.4-.5-.8-.5-1.3 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5c0-3.9-4-6.7-9-6.7Z"/><circle cx="7.6" cy="11" r="1.2"/><circle cx="10" cy="7.6" r="1.2"/><circle cx="14.5" cy="7.6" r="1.2"/><circle cx="16.9" cy="11" r="1.2"/></svg></button>
     <button id="btnDeep" class="toolbtn" title="Deep Search — research the web and live sources before answering"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2"/><path d="M12 3.4a13.4 13.4 0 0 1 0 17.2 13.4 13.4 0 0 1 0-17.2Z"/></svg></button>
     <textarea id="input" rows="1" placeholder="Ask Amigo anything…"></textarea>
     <button id="send" title="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6"/><path d="M6 12l6-6 6 6"/></svg></button>
@@ -304,6 +311,15 @@ body.dark .hero .hstar{filter:drop-shadow(0 0 10px rgba(127,176,255,.35))}
       <input type="text" id="inGCx" placeholder="Google search-engine ID (cx) — for Google Search" style="margin-top:7px">
       <input type="text" id="inGhTok" placeholder="GitHub token — optional, only for higher limits" style="margin-top:7px">
       <div class="hint">Deep Search 🌐 checks every enabled source at once and shows you the links it used. Everything runs in your browser — no server.</div>
+    </div>
+
+    <div class="field">
+      <label>🎨 Image generation</label>
+      <div class="switch">
+        <input type="checkbox" id="cImg">
+        <span><span class="pn">Draw images from your description</span>
+        <span class="pd" style="display:block">Free, no API key (uses Puter). Press 🎨 in the chat box, or simply ask “draw me…” — the picture appears in the chat and you can download it.</span></span>
+      </div>
     </div>
 
     <div class="field" id="fChats">
@@ -391,7 +407,7 @@ const chatEl = $("#chat"), inputEl = $("#input"), sendEl = $("#send");
 const DEFAULTS = {
   provider: "puter", model: "", apiKey: "",
   baseUrl: "https://api.openai.com/v1/chat/completions",
-  fullFramework: false, skill: "auto", theme: "light",
+  fullFramework: false, skill: "auto", theme: "light", imageMode: false,
   deepSearch: false,
   connectors: { web: true, google: false, gkey: "", gcx: "", stack: true, hn: true, books: true, github: true, weather: true, ghToken: "" }
 };
@@ -417,7 +433,17 @@ function histLoad(id){
   try { const h = JSON.parse(localStorage.getItem(hKey(id)) || "[]"); return dedupeHistory(Array.isArray(h) ? h : []); }
   catch(e){ return []; }
 }
-function histSave(){ try { localStorage.setItem(hKey(curSkill), JSON.stringify(curHistory().slice(-80))); } catch(e){} }
+function histSave(){
+  try {
+    const h = curHistory().slice(-80).map(m => {
+      if (m && typeof m.image === "string" && m.image.length > 250000){
+        const c = Object.assign({}, m); delete c.image; c.imageDropped = true; return c;
+      }
+      return m;
+    });
+    localStorage.setItem(hKey(curSkill), JSON.stringify(h));
+  } catch(e){}
+}
 let _histories = {};
 function curHistory(){ return _histories[curSkill]; }
 function saveAllSettings(){ try { localStorage.setItem("amigo2_settings", JSON.stringify(settings)); } catch(e){} }
@@ -476,9 +502,25 @@ function addMsg(role, text, opts){
   if (opts && opts.typing){ bub.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>'; }
   else if (opts && opts.raw){ bub.textContent = text || ""; }
   else { bub.innerHTML = mdLite(text); }
+  if (opts && opts.image) addImage(bub, opts.image, opts.prompt);
   if (opts && opts.sources && opts.sources.length) addSources(bub, opts.sources);
   wrap.append(bub); chatEl.append(wrap); scrollDown();
   return bub;
+}
+
+function addImage(bub, src, prompt){
+  const wrap = document.createElement("div"); wrap.className = "imgwrap";
+  const img = document.createElement("img");
+  img.className = "genimg"; img.src = src; img.alt = prompt || "generated image"; img.loading = "lazy";
+  wrap.append(img);
+  const cap = document.createElement("div"); cap.className = "imgcap";
+  const t = document.createElement("span");
+  t.textContent = "🎨 " + (prompt ? (prompt.length > 70 ? prompt.slice(0, 70) + "…" : prompt) : "image");
+  const dl = document.createElement("a");
+  dl.className = "dlbtn"; dl.href = src; dl.download = "amigo-image.png"; dl.textContent = "⬇ Download";
+  cap.append(t); cap.append(dl);
+  wrap.append(cap);
+  bub.append(wrap);
 }
 
 function addSources(bub, groups){
@@ -509,7 +551,11 @@ function renderMsg(m){
     card.innerHTML = m.html;
     chatEl.append(card);
   } else if (m.role === "user" || m.role === "assistant"){
-    addMsg(m.role, m.content, m.sources ? { sources: m.sources } : null);
+    const o = {};
+    if (m.sources) o.sources = m.sources;
+    if (m.image){ o.image = m.image; o.prompt = m.imagePrompt; }
+    if (m.imageDropped) addMsg(m.role, "🎨 (image not saved — browser storage was full)", null);
+    else addMsg(m.role, m.content, Object.keys(o).length ? o : null);
   }
 }
 
@@ -889,6 +935,32 @@ async function send(){
 
   const bub = addMsg("assistant", "", { typing: true });
   const bubWrap = bub.parentElement; if (bubWrap) bubWrap.classList.add("answering");
+
+  /* image generation: if the user wants a picture (or 🎨 is on), draw it and stop here */
+  if (!!settings.imageMode || wantsImage(text)){
+    bub.innerHTML = '<span class="searching"><i></i> 🎨 Drawing your image…</span>';
+    try {
+      const src = await genImage(text);
+      const cap = "🎨 Here is your image.";
+      bub.innerHTML = mdLite(cap);
+      addImage(bub, src, text);
+      curHistory().push({ role: "assistant", content: cap, image: src, imagePrompt: text });
+      histSave();
+    } catch(err){
+      bub.classList.add("err");
+      bub.textContent = "⚠️ " + (err && err.message ? err.message : "Image generation failed.");
+      const rb = document.createElement("button");
+      rb.className = "retrybtn"; rb.textContent = "↻ Try again";
+      rb.onclick = () => { inputEl.value = text; send(); };
+      bub.append(document.createElement("br")); bub.append(rb);
+    } finally {
+      if (bubWrap) bubWrap.classList.remove("answering");
+      setBusy(false); inputEl.focus();
+    }
+    scrollDown();
+    return;
+  }
+
   /* connectors: pull live data before answering */
   let sources = null;
   try {
@@ -987,6 +1059,23 @@ async function send(){
     setBusy(false); inputEl.focus();
   }
   scrollDown();
+}
+
+/* ---------------- image generation (free, via Puter — no API key) ---------------- */
+const wantsImage = t => {
+  const s = String(t);
+  return /(generate|create|make|draw|design|paint|render|show me|bana|banao|बनाओ|बना दो|बनाइए)\s+(me\s+)?(an?\s+|ek\s+)?(image|picture|photo|poster|logo|illustration|artwork|art|sketch|drawing|thumbnail|wallpaper|चित्र|तस्वीर|फ़ोटो|फोटो|पोस्टर|लोगो)/i.test(s)
+    || /^(draw|paint|sketch|illustrate)\b/i.test(s)
+    || /\b(image|picture|photo|poster|logo|illustration|thumbnail|wallpaper)\b[^.]{0,40}\b(of|for|showing|with|that)\b/i.test(s)
+    || /(चित्र|तस्वीर|फ़ोटो|फोटो|पोस्टर|लोगो)\s*(बनाओ|बना|बनाइए|चाहिए|चाहिये)/.test(s);
+};
+async function genImage(prompt){
+  if (typeof puter === "undefined" || !puter.ai || typeof puter.ai.txt2img !== "function")
+    throw new Error("Image generation uses the free Puter service and it could not load. Check your internet connection and try again.");
+  const el = await puter.ai.txt2img(prompt);
+  const src = (el && el.src) ? el.src : (typeof el === "string" ? el : null);
+  if (!src) throw new Error("No image came back — please try again.");
+  return src;
 }
 
 /* ---------------- CSV data tool ---------------- */
@@ -1494,6 +1583,15 @@ $("#btnDeep").addEventListener("click", () => {
   settings.deepSearch = !settings.deepSearch;
   saveAllSettings(); syncDeepBtn();
 });
+function syncImgBtn(){
+  const b = $("#btnImg"); if (!b) return;
+  b.classList.toggle("on", !!settings.imageMode);
+  b.title = settings.imageMode ? "Image generation is ON — your next message will be drawn as a picture" : "Image generation — describe a picture and the app draws it (free, no key)";
+}
+$("#btnImg").addEventListener("click", () => {
+  settings.imageMode = !settings.imageMode;
+  saveAllSettings(); syncImgBtn();
+});
 $("#abBtn").addEventListener("click", abFormCard);
 $("#fileInput").addEventListener("change", e => { if (e.target.files[0]) loadCSVFile(e.target.files[0]); e.target.value = ""; });
 document.addEventListener("click", e => {
@@ -1546,6 +1644,7 @@ function syncSettingsFields(){
   $("#cHn").checked = !!cn.hn; $("#cBooks").checked = !!cn.books; $("#cGh").checked = !!cn.github;
   $("#cWx").checked = !!cn.weather;
   $("#inGKey").value = cn.gkey || ""; $("#inGCx").value = cn.gcx || ""; $("#inGhTok").value = cn.ghToken || "";
+  $("#cImg").checked = !!settings.imageMode;
   $("#inSkill").value = settings.skill;
   applyProvUI();
 }
@@ -1559,6 +1658,7 @@ $("#btnSave").addEventListener("click", () => {
   settings.apiKey = $("#inKey").value.trim();
   settings.baseUrl = $("#inBase").value.trim() || (settings.provider === "groq" ? GROQ_URL : (settings.provider === "openrouter" ? OR_URL : DEFAULTS.baseUrl));
   settings.fullFramework = $("#inFull").checked;
+  settings.imageMode = $("#cImg").checked;
   settings.connectors = {
     google: $("#cGoogle").checked, gkey: $("#inGKey").value.trim(), gcx: $("#inGCx").value.trim(),
     web: $("#cWeb").checked, stack: $("#cStack").checked, hn: $("#cHn").checked, books: $("#cBooks").checked,
@@ -1721,6 +1821,7 @@ function showSetupBox(){
     Object.entries(SKILLS).map(([id, s]) => '<option value="' + id + '">' + s.icon + "  " + esc(s.name) + "</option>").join("");
   updateHeader();
   syncDeepBtn();
+  syncImgBtn();
   renderAll();
   if (!isSetupDone()) showSetupBox();
   inputEl.focus();
