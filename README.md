@@ -4,6 +4,8 @@ A complete, browser-based AI assistant in **one HTML file**. No build step, no s
 
 Live demo (GitHub Pages): https://bholasee8816-art.github.io/amigo-ai-chat/
 
+![Amigo — light and dark theme](screenshot.png)
+
 ---
 
 ## Highlights
