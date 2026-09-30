@@ -276,20 +276,20 @@ body.dark .hero .hstar{filter:drop-shadow(0 0 10px rgba(127,176,255,.35))}
           <span class="pd" style="display:block">Uses Google's own free Programmable Search API. One-time setup: get a key at <b>console.cloud.google.com</b> (enable "Custom Search API"), and a search-engine ID at <b>programmablesearchengine.google.com</b> — paste both below.</span></span>
         </label>
         <label><input type="checkbox" id="cWeb">
-          <span><span class="pn">🌐 Wikipedia + DuckDuckGo</span>
-          <span class="pd" style="display:block">Encyclopaedia pages and instant answers, with links. No key needed.</span></span>
+          <span><span class="pn">🌐 Wikipedia, Wikidata + DuckDuckGo</span>
+          <span class="pd" style="display:block">Encyclopaedia pages, quick facts and instant answers, with links. No key needed.</span></span>
         </label>
         <label><input type="checkbox" id="cStack">
           <span><span class="pn">💬 Stack Overflow</span>
           <span class="pd" style="display:block">Answers and discussions from Stack Exchange — great for anything technical. No key needed.</span></span>
         </label>
         <label><input type="checkbox" id="cHn">
-          <span><span class="pn">📰 Hacker News</span>
-          <span class="pd" style="display:block">Tech news and discussions from the last few years. No key needed.</span></span>
+          <span><span class="pn">📰 Global news (Hacker News + GDELT)</span>
+          <span class="pd" style="display:block">Tech discussions plus worldwide news coverage (GDELT), refreshed live. No key needed.</span></span>
         </label>
         <label><input type="checkbox" id="cBooks">
           <span><span class="pn">📚 Books &amp; research papers</span>
-          <span class="pd" style="display:block">Open Library books and Crossref academic papers, with links. No key needed.</span></span>
+          <span class="pd" style="display:block">Books (Open Library) and research papers (Crossref + OpenAlex), with links. No key needed.</span></span>
         </label>
         <label><input type="checkbox" id="cGh">
           <span><span class="pn">🐙 GitHub</span>
@@ -707,8 +707,29 @@ async function webItems(q){
       catch(e){ if (h.snippet) items.push({ title: h.title, text: h.snippet, url: h.url }); }
     }
   } catch(e){}
+  try { (await wikidataSearch(q)).slice(0, 2).forEach(x => items.push(x)); } catch(e){}
   try { (await ddg(q)).slice(0, 4).forEach(x => items.push(x)); } catch(e){}
   return items;
+}
+/* Wikidata — quick factual entities (keyless) */
+async function wikidataSearch(q){
+  const u = "https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&origin=*&language=en&limit=3&search=" + encodeURIComponent(q);
+  const j = await fetchJSON(u);
+  return (j.search || []).map(x => ({
+    title: x.label || x.id,
+    text: (x.description || "Wikidata entity") + " · " + x.id,
+    url: "https://www.wikidata.org/wiki/" + x.id
+  }));
+}
+/* GDELT — worldwide news coverage, keyless (a broad Google-News-like sweep) */
+async function gdeltSearch(q){
+  const u = "https://api.gdeltproject.org/api/v2/doc/doc?mode=artlist&format=json&maxrecords=4&sort=hybridrel&query=" + encodeURIComponent(q);
+  const j = await fetchJSON(u);
+  return (j.articles || []).map(a => ({
+    title: a.title || "News article",
+    text: (a.domain ? a.domain + " · " : "") + (a.seendate ? String(a.seendate).slice(0, 8) : ""),
+    url: a.url
+  })).filter(x => x.url);
 }
 /* Google Programmable Search — the official way to get Google results in an app */
 async function googleSearch(q){
@@ -761,6 +782,17 @@ async function booksSearch(q){
       items.push({ title: t, text: (host ? host + " · " : "") + (w.published && w.published["date-parts"] ? w.published["date-parts"][0][0] : ""), url: w.URL || ("https://doi.org/" + w.DOI) });
     });
   } catch(e){}
+  try {
+    const j = await fetchJSON("https://api.openalex.org/works?per-page=3&search=" + encodeURIComponent(q));
+    (j.results || []).slice(0, 3).forEach(w => {
+      const src = (w.primary_location && w.primary_location.source && w.primary_location.source.display_name) || "";
+      items.push({
+        title: w.title || "Research paper",
+        text: (src ? src + " · " : "") + (w.publication_year || ""),
+        url: (w.doi && String(w.doi).startsWith("http")) ? w.doi : (w.id || "")
+      });
+    });
+  } catch(e){}
   return items;
 }
 const wantsWeather = t => /weather|temperature|forecast|how (hot|cold)|mausam|मौसम|बारिश|rain|humidity|garmi|sardi/i.test(t);
@@ -804,9 +836,9 @@ async function runConnectors(text, deep){
   const add = (label, pr) => jobs.push(pr.then(items => (items && items.length) ? { label: label, items: items } : null).catch(() => null));
   if (deep){
     if (c.google && c.gkey && c.gcx) add("Google Search", googleSearch(q));
-    if (c.web) add("Wikipedia & DuckDuckGo", webItems(q));
+    if (c.web) add("Wikipedia, Wikidata & DuckDuckGo", webItems(q));
     if (c.stack) add("Stack Overflow / Stack Exchange", stackSearch(q));
-    if (c.hn) add("Hacker News", hnSearch(q));
+    if (c.hn) add("News — Hacker News + GDELT", Promise.all([hnSearch(q).catch(() => []), gdeltSearch(q).catch(() => [])]).then(a => a[0].concat(a[1])));
     if (c.books) add("Books & research papers", booksSearch(q));
   }
   if (c.github && (deep || wantsGithub(text))){
