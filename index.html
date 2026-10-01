@@ -102,7 +102,23 @@ header{display:flex; align-items:center; gap:10px; padding:12px 0 10px}
 .sources{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; white-space:normal}
 .src{display:inline-flex; align-items:center; gap:5px; font-size:.72rem; color:var(--ink); background:var(--hover); border:1px solid var(--line); border-radius:99px; padding:4px 11px; text-decoration:none; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .src:hover{background:var(--line)}
-.srcmeta{font-size:.7rem; color:var(--muted); margin-top:11px; white-space:normal}
+.srcmeta{font-size:.7rem; color:var(--muted); margin:9px 0 0; white-space:normal}
+/* web-search results live inside one icon */
+.srcwrap{margin-top:11px}
+.srcbtn{display:inline-flex; align-items:center; gap:8px; font:inherit; font-size:.74rem; color:var(--ink);
+  background:var(--hover); border:1px solid var(--line); border-radius:99px; padding:7px 13px; cursor:pointer;
+  transition:background .14s, border-color .14s}
+.srcbtn:hover{background:var(--line)}
+.srcbtn svg{width:15px; height:15px; color:var(--muted)}
+.srcbtn .srclabel{font-weight:600}
+.srcbtn .srccount{color:var(--muted)}
+.srcbtn .srcchev{transition:transform .18s ease}
+.srcwrap.open .srcbtn .srcchev{transform:rotate(180deg)}
+.srcwrap.open .srcbtn{border-color:var(--line2); background:var(--line)}
+.srcpanel{display:none; margin-top:9px; padding:12px 13px; border:1px solid var(--line); border-radius:14px; background:var(--panel)}
+.srcwrap.open .srcpanel{display:block; animation:srcIn .16s ease}
+@keyframes srcIn{from{opacity:0; transform:translateY(-4px)} to{opacity:1; transform:none}}
+.srcpanel .srcmeta{margin-top:0}
 /* copy button that appears under a message */
 .msg{flex-wrap:wrap}
 .copyrow{flex-basis:100%; display:flex; margin-top:7px; opacity:0; transition:opacity .16s ease}
@@ -661,23 +677,41 @@ function addImage(bub, src, prompt){
 function addSources(bub, groups){
   const sites = groups.length;
   const total = groups.reduce((n, g) => n + (g.items ? g.items.length : 0), 0);
+
+  const wrap = document.createElement("div"); wrap.className = "srcwrap";
+  const btn = document.createElement("button"); btn.type = "button"; btn.className = "srcbtn";
+  btn.title = "Show the sources this answer used";
+  btn.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2"/><path d="M12 3.4a13.4 13.4 0 0 1 0 17.2 13.4 13.4 0 0 1 0-17.2Z"/></svg>' +
+    '<span class="srclabel">Web search</span>' +
+    '<span class="srccount">' + total + ' result' + (total === 1 ? "" : "s") + ' \u00b7 ' + sites + ' source' + (sites === 1 ? "" : "s") + '</span>' +
+    '<svg class="srcchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+
+  const panel = document.createElement("div"); panel.className = "srcpanel";
   const meta = document.createElement("div");
   meta.className = "srcmeta";
-  meta.textContent = "🌐 Checked " + total + " results from " + sites + " source" + (sites === 1 ? "" : "s") + " just now";
-  bub.append(meta);
+  meta.textContent = "Checked " + total + " results from " + sites + " source" + (sites === 1 ? "" : "s") + " just now";
   const row = document.createElement("div"); row.className = "sources";
   let shown = 0;
   groups.forEach(g => (g.items || []).forEach(it => {
-    if (!it || !it.url || shown >= 10) return;
+    if (!it || !it.url || shown >= 12) return;
     shown++;
-    const a = document.createElement("a");
-    a.className = "src"; a.href = it.url; a.target = "_blank"; a.rel = "noopener";
+    const a2 = document.createElement("a");
+    a2.className = "src"; a2.href = it.url; a2.target = "_blank"; a2.rel = "noopener";
     let host = ""; try { host = new URL(it.url).hostname.replace(/^www\./, ""); } catch(e){}
     const t = String(it.title || "source");
-    a.textContent = "🔗 " + (t.length > 42 ? t.slice(0, 42) + "…" : t) + (host ? " · " + host : "");
-    row.append(a);
+    a2.textContent = "\u{1F517} " + (t.length > 42 ? t.slice(0, 42) + "\u2026" : t) + (host ? " \u00b7 " + host : "");
+    row.append(a2);
   }));
-  if (row.children.length) bub.append(row);
+  panel.append(meta);
+  if (row.children.length) panel.append(row);
+
+  btn.addEventListener("click", () => {
+    wrap.classList.toggle("open");
+    btn.title = wrap.classList.contains("open") ? "Hide the sources" : "Show the sources this answer used";
+  });
+  wrap.append(btn, panel);
+  bub.append(wrap);
 }
 
 function renderMsg(m){
