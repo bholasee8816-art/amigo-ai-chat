@@ -10,8 +10,8 @@ Live demo (GitHub Pages): https://bholasee8816-art.github.io/amigo-ai-chat/
 
 ## Highlights
 
-- **25 built-in skills** — product analytics, metric reasoning, A/B testing, time-series, deck building, design critique, UI critique, file triage, changelog reporting and more. Each one carries its own expert instructions.
-- **No skill to pick** — all 25 skills live inside the file and are chosen automatically from what you write. There is no skill selector anywhere; just type.
+- **30 built-in skills** — product analytics, metric reasoning, A/B testing, time-series, design critique, UI critique, file triage, changelog reporting, plus a full document toolkit: PPTX decks (consulting, report and bold-pitch looks), self-contained HTML decks, PDF creation and editing, Excel/CSV workbooks, and a doc co-authoring workflow for specs, proposals, PRDs and RFCs. Each one carries its own expert instructions.
+- **No skill to pick** — all 30 skills live inside the file and are chosen automatically from what you write. There is no skill selector anywhere; just type.
 - **Long, structured answers** — replies come back in the style of Google's AI Mode: a short highlighted summary, then numbered sections and bullet points with the key terms in bold. A **Stop** button lets you cut a long answer short.
 - **Google Gemini first** — Gemini is the default provider, with free Puter as the automatic fallback, so the app always answers even before you add a key.
 - **Everything keyless is built in and always on** — Wikipedia, Wikidata, DuckDuckGo, Stack Overflow, Hacker News, GDELT world news, Open Library, Crossref, OpenAlex, GitHub, weather, trending now and image generation all work with no key, no signup and no switches to flip. Deep Search then checks them all at once and tucks every source inside a single small "Web search" pill under the answer — tap it to see all the links.
