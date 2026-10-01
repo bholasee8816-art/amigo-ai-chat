@@ -105,11 +105,12 @@ header{display:flex; align-items:center; gap:10px; padding:12px 0 10px}
 .srcmeta{font-size:.7rem; color:var(--muted); margin:9px 0 0; white-space:normal}
 /* web-search results live inside one icon */
 .srcwrap{margin-top:11px}
-.srcbtn{display:inline-flex; align-items:center; gap:8px; font:inherit; font-size:.74rem; color:var(--ink);
-  background:var(--hover); border:1px solid var(--line); border-radius:99px; padding:7px 13px; cursor:pointer;
+.srcbtn{display:inline-flex; align-items:center; gap:5px; font:inherit; font-size:.61rem; color:var(--ink);
+  background:var(--hover); border:1px solid var(--line); border-radius:99px; padding:3px 8px; cursor:pointer;
   transition:background .14s, border-color .14s}
 .srcbtn:hover{background:var(--line)}
-.srcbtn svg{width:15px; height:15px; color:var(--muted)}
+.srcbtn svg{width:11px; height:11px; color:var(--muted)}
+.srcbtn .srcchev{width:10px; height:10px}
 .srcbtn .srclabel{font-weight:600}
 .srcbtn .srccount{color:var(--muted)}
 .srcbtn .srcchev{transition:transform .18s ease}
@@ -119,6 +120,18 @@ header{display:flex; align-items:center; gap:10px; padding:12px 0 10px}
 .srcwrap.open .srcpanel{display:block; animation:srcIn .16s ease}
 @keyframes srcIn{from{opacity:0; transform:translateY(-4px)} to{opacity:1; transform:none}}
 .srcpanel .srcmeta{margin-top:0}
+/* files waiting to be sent */
+.attbar{display:flex; flex-wrap:wrap; gap:6px; padding:0 2px 7px}
+.attbar:empty{display:none}
+.attchip{display:inline-flex; align-items:center; gap:6px; font-size:.7rem; color:var(--ink);
+  background:var(--hover); border:1px solid var(--line); border-radius:10px; padding:4px 8px; max-width:100%}
+.attchip img{width:20px; height:20px; object-fit:cover; border-radius:5px}
+.attchip .x{border:none; background:none; color:var(--muted); cursor:pointer; font-size:12px; padding:0 1px; line-height:1}
+.attchip .x:hover{color:var(--red)}
+/* files shown inside a sent message */
+.msgatt{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px}
+.msgatt img{max-width:190px; max-height:150px; border-radius:10px; border:1px solid var(--line); display:block}
+.msgatt .fchip{font-size:.68rem; background:var(--hover); border:1px solid var(--line); border-radius:9px; padding:4px 9px; color:var(--muted)}
 /* copy button that appears under a message */
 .msg{flex-wrap:wrap}
 .copyrow{flex-basis:100%; display:flex; margin-top:7px; opacity:0; transition:opacity .16s ease}
@@ -403,13 +416,14 @@ body.dark .hero .hstar::after{background:radial-gradient(circle, rgba(150,190,25
     Going through a hard time? Help is available — Emergency <b>112</b> · Tele-MANAS <b>14416</b> (24×7, free) · Women Helpline <b>181</b> · Childline <b>1098</b>
   </div>
 
+  <div class="attbar" id="attBar"></div>
   <div class="composer">
     <button id="plusBtn" class="toolbtn plus" type="button" title="Add a file, or switch a mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg></button>
     <textarea id="input" rows="1" placeholder="Ask Amigo anything…"></textarea>
     <button id="micBtn" class="toolbtn" type="button" title="Speak your question" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a2.6 2.6 0 0 1 2.6 2.6v5a2.6 2.6 0 0 1-5.2 0v-5A2.6 2.6 0 0 1 12 4Z"/><path d="M6.5 11.5a5.5 5.5 0 0 0 11 0"/><path d="M12 17v3.5"/></svg></button>
     <button id="send" title="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6"/><path d="M6 12l6-6 6 6"/></svg></button>
     <div class="menu" id="toolMenu">
-      <button id="attach" class="mitem" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2.5h7A2 2 0 0 1 20.5 10v6.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2Z"/></svg><span>Upload a data file (CSV)</span></button>
+      <button id="attach" class="mitem" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2.5h7A2 2 0 0 1 20.5 10v6.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2Z"/></svg><span>Upload a file or photo</span></button>
       <button id="abBtn" class="mitem" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3h5"/><path d="M10.5 3v6.2L5.3 18a1.7 1.7 0 0 0 1.5 2.6h10.4a1.7 1.7 0 0 0 1.5-2.6L13.5 9.2V3"/><path d="M7.6 14.5h8.8"/></svg><span>A/B test calculator</span></button>
       <div class="mdiv"></div>
       <button id="btnImg" class="mitem" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.6-.3-1-.6-1.4-.3-.4-.5-.8-.5-1.3 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5c0-3.9-4-6.7-9-6.7Z"/><circle cx="7.6" cy="11" r="1.2"/><circle cx="10" cy="7.6" r="1.2"/><circle cx="14.5" cy="7.6" r="1.2"/><circle cx="16.9" cy="11" r="1.2"/></svg><span>Create images</span><span class="chk">✓</span></button>
@@ -418,7 +432,7 @@ body.dark .hero .hstar::after{background:radial-gradient(circle, rgba(150,190,25
     </div>
   </div>
   <div class="sarvline">✦ <b>AI for All, from India</b> · your choice of free AI ✦</div>
-  <input type="file" id="fileInput" accept=".csv,.txt,.tsv" style="display:none">
+  <input type="file" id="fileInput" multiple style="display:none">
 </div>
 </div>
 <div class="scrim" id="scrim"></div>
@@ -555,6 +569,11 @@ function histSave(){
       if (m && typeof m.image === "string" && m.image.length > 250000){
         const c = Object.assign({}, m); delete c.image; c.imageDropped = true; return c;
       }
+      if (m && Array.isArray(m.attachments) && m.attachments.some(a => a.image && a.image.length > 250000)){
+        const c = Object.assign({}, m);
+        c.attachments = m.attachments.map(a => (a.image && a.image.length > 250000) ? Object.assign({}, a, { image: null }) : a);
+        return c;
+      }
       return m;
     });
     localStorage.setItem(hKey(curSkill), JSON.stringify(h));
@@ -619,6 +638,7 @@ function addMsg(role, text, opts){
   if (opts && opts.typing){ bub.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>'; }
   else if (opts && opts.raw){ bub.textContent = text || ""; }
   else { bub.innerHTML = mdLite(text); }
+  if (opts && opts.attachments && opts.attachments.length) addMsgAtt(bub, opts.attachments);
   if (opts && opts.image) addImage(bub, opts.image, opts.prompt);
   if (opts && opts.sources && opts.sources.length) addSources(bub, opts.sources);
   wrap.append(bub); chatEl.append(wrap);
@@ -723,6 +743,7 @@ function renderMsg(m){
     const o = {};
     if (m.sources) o.sources = m.sources;
     if (m.image){ o.image = m.image; o.prompt = m.imagePrompt; }
+    if (m.attachments && m.attachments.length) o.attachments = m.attachments;
     if (m.imageDropped) addMsg(m.role, "🎨 (image not saved — browser storage was full)", null);
     else addMsg(m.role, m.content, Object.keys(o).length ? o : null);
   }
@@ -797,12 +818,25 @@ async function callPuter(msgs){
   if (settings.model) opts.model = settings.model;
   return await puter.ai.chat(msgs, opts);
 }
+function gemParts(content){
+  if (typeof content === "string") return [{ text: content }];
+  const out = [];
+  (content || []).forEach(p => {
+    if (p.type === "text") out.push({ text: p.text || "" });
+    else if (p.type === "image_url"){
+      const url = (p.image_url && p.image_url.url) || "";
+      const m = url.match(/^data:([^;]+);base64,(.*)$/);
+      if (m) out.push({ inline_data: { mime_type: m[1], data: m[2] } });
+    }
+  });
+  return out.length ? out : [{ text: "" }];
+}
 async function callGemini(sys, msgs){
   const model = settings.model || "gemini-2.0-flash";
   const url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(settings.apiKey);
   const body = {
     system_instruction: { parts: [{ text: sys }] },
-    contents: msgs.filter(m => m.role !== "system").map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }))
+    contents: msgs.filter(m => m.role !== "system").map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: gemParts(m.content) }))
   };
   const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error("Gemini error " + r.status + ": " + (await r.text()).slice(0, 300));
@@ -1118,7 +1152,7 @@ function setBusy(b){ busy = b; sendEl.disabled = b; inputEl.disabled = b; $("#at
 
 async function send(){
   const text = inputEl.value.trim();
-  if (!text || busy) return;
+  if ((!text && !_pending.length) || busy) return;
   if (settings.skill === "auto" && curHistory().length === 0){
     curSkill = routeSkill(text);
     updateHeader();
@@ -1129,7 +1163,9 @@ async function send(){
   const _last = _h[_h.length - 1];
   const isRetry = !!(_last && _last.role === "user" && String(_last.content).trim() === text);
   if (_h.length === 0) chatEl.innerHTML = "";
-  if (!isRetry){ _h.push({ role: "user", content: text }); addMsg("user", text); }
+  const atts = _pending.slice();
+  _pending = []; renderAttBar();
+  if (!isRetry){ _h.push({ role: "user", content: text || "Please look at what I attached.", attachments: atts.length ? atts : undefined }); addMsg("user", text || "Please look at what I attached.", atts.length ? { attachments: atts } : null); }
   histSave(); setBusy(true);
 
   const bub = addMsg("assistant", "", { typing: true });
@@ -1173,7 +1209,21 @@ async function send(){
   } catch(e){ sources = null; }
   const sys = buildSystemPrompt() + researchBlock(sources);
   const msgs = [{ role: "system", content: sys }].concat(
-    curHistory().slice(-30).map(m => ({ role: (m.kind === "data") ? "user" : m.role, content: m.content }))
+    curHistory().slice(-30).map(m => {
+      if (m.kind === "data") return { role: "user", content: m.content };
+      let c = m.content || "";
+      (m.attachments || []).forEach(a => {
+        if (a.kind === "text") c += "\n\n--- File: " + a.name + " ---\n" + a.text;
+        else if (a.kind === "unsupported") c += "\n\n[The user attached " + a.name + ", which could not be read in the browser — say so honestly if it matters.]";
+      });
+      const imgs = (m.attachments || []).filter(a => a.kind === "image" && a.image);
+      if (imgs.length){
+        const parts = [{ type: "text", text: c || "Please look at this image." }];
+        imgs.forEach(a => parts.push({ type: "image_url", image_url: { url: a.image } }));
+        return { role: m.role, content: parts };
+      }
+      return { role: m.role, content: c };
+    })
   );
   let reply = "";
   let usedProvider = settings.provider;
@@ -1260,6 +1310,164 @@ async function send(){
     setBusy(false); inputEl.focus();
   }
   scrollDown();
+}
+
+/* ---------------- attachments: any file, any photo ---------------- */
+let _pending = [];
+const TEXT_EXT = /\.(txt|md|markdown|csv|tsv|json|jsonl|xml|html?|css|js|mjs|ts|jsx|tsx|py|java|c|cpp|h|cs|rb|go|rs|php|sh|sql|yml|yaml|ini|conf|log|srt|vtt)$/i;
+
+function renderAttBar(){
+  const bar = $("#attBar"); if (!bar) return;
+  bar.innerHTML = "";
+  _pending.forEach((a, i) => {
+    const chip = document.createElement("span"); chip.className = "attchip";
+    if (a.kind === "image" && a.image){ const im = document.createElement("img"); im.src = a.image; chip.append(im); }
+    const nm = document.createElement("span");
+    nm.textContent = a.name + (a.kind === "unsupported" ? " — can't read this one" : "");
+    chip.append(nm);
+    const x = document.createElement("button"); x.type = "button"; x.className = "x"; x.textContent = "\u2715"; x.title = "Remove";
+    x.addEventListener("click", () => { _pending.splice(i, 1); renderAttBar(); });
+    chip.append(x); bar.append(chip);
+  });
+}
+const readAsDataURL = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); });
+const readAsText = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsText(f); });
+
+async function shrinkImage(dataUrl){
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl; });
+    const max = 1200, w = img.width, h = img.height;
+    if (w <= max && h <= max && dataUrl.length < 900000) return dataUrl;
+    const r = Math.min(max / w, max / h, 1);
+    const c = document.createElement("canvas"); c.width = Math.round(w * r); c.height = Math.round(h * r);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.85);
+  } catch(e){ return dataUrl; }
+}
+
+/* pull the words out of a PDF, right here in the browser (no library) */
+function findBytes(hay, needle, from){
+  const n = needle.length;
+  outer:
+  for (let i = from; i <= hay.length - n; i++){
+    for (let j = 0; j < n; j++) if (hay[i + j] !== needle[j]) continue outer;
+    return i;
+  }
+  return -1;
+}
+async function inflateBytes(u8, fmt){
+  const ds = new DecompressionStream(fmt);
+  const w = ds.writable.getWriter();
+  try { w.write(u8); } catch(e){}
+  try { w.close(); } catch(e){}
+  const rd = ds.readable.getReader(); const chunks = [];
+  try {
+    while (true){ const { done, value } = await rd.read(); if (done) break; if (value) chunks.push(value); }
+  } catch(e){ /* the stream may end with a few stray bytes — keep what we already decoded */ }
+  let len = 0; chunks.forEach(c => { len += c.length; });
+  const out = new Uint8Array(len); let o = 0;
+  chunks.forEach(c => { out.set(c, o); o += c.length; });
+  return new TextDecoder("utf-8", { fatal: false }).decode(out);
+}
+async function extractPdfText(file){
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const S = [115,116,114,101,97,109], E = [101,110,100,115,116,114,101,97,109];
+  let out = "", pos = 0;
+  while (true){
+    const a = findBytes(bytes, S, pos); if (a < 0) break;
+    let start = a + S.length;
+    if (bytes[start] === 13) start++;
+    if (bytes[start] === 10) start++;
+    const e = findBytes(bytes, E, start); if (e < 0) break;
+    let end = e;
+    while (end > start && (bytes[end - 1] === 10 || bytes[end - 1] === 13)) end--;
+    const chunk = bytes.slice(start, end);
+    let text = "";
+    try { text = await inflateBytes(chunk, "deflate"); }
+    catch(err){ try { text = await inflateBytes(chunk.slice(2), "deflate-raw"); } catch(e2){ text = ""; } }
+    if (text){
+      const parts = text.match(/\((?:\\.|[^\\()])*\)/g);
+      if (parts) out += parts.map(x => x.slice(1, -1).replace(/\\([()\\])/g, "$1")).join(" ") + "\n";
+    }
+    pos = e + E.length;
+  }
+  const clean = out.replace(/\s+/g, " ").trim();
+  // keep only if it actually looks like words
+  const letters = (clean.match(/[A-Za-z\u0900-\u097F]/g) || []).length;
+  return (clean.length > 40 && letters / clean.length > 0.45) ? clean : "";
+}
+
+/* the full PDF reader, loaded only when a PDF is actually attached */
+const PDFJS = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+function loadPdfJs(){
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return new Promise((res, rej) => {
+    const sc = document.createElement("script");
+    sc.src = PDFJS + "pdf.min.js";
+    sc.onload = () => {
+      try { if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + "pdf.worker.min.js"; } catch(e){}
+      res(window.pdfjsLib);
+    };
+    sc.onerror = () => rej(new Error("pdf.js could not load"));
+    document.head.append(sc);
+  });
+}
+async function pdfTextWithLib(file){
+  const lib = await loadPdfJs();
+  if (!lib || !lib.getDocument) throw new Error("no pdf.js");
+  const doc = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  let out = "";
+  const n = Math.min(doc.numPages || 1, 40);
+  for (let i = 1; i <= n; i++){
+    const page = await doc.getPage(i);
+    const tc = await page.getTextContent();
+    out += (tc.items || []).map(it => it.str).join(" ") + "\n";
+  }
+  return out.replace(/[ \t]+/g, " ").trim();
+}
+
+async function handleFiles(files){
+  for (const file of files){
+    if (file.size > 8 * 1024 * 1024){ alert(file.name + " is too large — 8MB is the limit."); continue; }
+    const isCsv = /\.(csv|tsv)$/i.test(file.name) || file.type === "text/csv";
+    if (isCsv){ loadCSVFile(file); continue; }
+    const isImg = /^image\//i.test(file.type) || /\.(png|jpe?g|webp|gif|bmp|avif)$/i.test(file.name);
+    if (isImg){
+      const raw = await readAsDataURL(file);
+      _pending.push({ name: file.name, kind: "image", image: await shrinkImage(raw) });
+      continue;
+    }
+    if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)){
+      let t = "";
+      try { t = await pdfTextWithLib(file); } catch(e){ t = ""; }
+      if (!t || t.length < 60){ try { const t2 = await extractPdfText(file); if (t2 && t2.length > (t || "").length) t = t2; } catch(e){} }
+      if (t && t.length > 60) _pending.push({ name: file.name, kind: "text", text: t.slice(0, 60000) });
+      else _pending.push({ name: file.name, kind: "unsupported" });
+      continue;
+    }
+    if (TEXT_EXT.test(file.name) || /^text\//i.test(file.type)){
+      const t = await readAsText(file);
+      _pending.push({ name: file.name, kind: "text", text: String(t).slice(0, 60000) });
+      continue;
+    }
+    _pending.push({ name: file.name, kind: "unsupported" });
+  }
+  renderAttBar();
+}
+function addMsgAtt(bub, atts){
+  const wrap = document.createElement("div"); wrap.className = "msgatt";
+  atts.forEach(a => {
+    if (a.kind === "image" && a.image){
+      const im = document.createElement("img"); im.src = a.image; im.alt = a.name || "photo";
+      im.addEventListener("click", () => window.open(a.image, "_blank"));
+      wrap.append(im);
+    } else {
+      const c = document.createElement("span"); c.className = "fchip";
+      c.textContent = "\u{1F4CE} " + (a.name || "file") + (a.kind === "unsupported" ? " (could not be read)" : "");
+      wrap.append(c);
+    }
+  });
+  if (wrap.children.length) bub.append(wrap);
 }
 
 /* ---------------- image generation (free, via Puter — no API key) ---------------- */
@@ -1841,7 +2049,11 @@ $("#btnImg").addEventListener("click", () => {
   saveAllSettings(); syncImgBtn();
 });
 $("#abBtn").addEventListener("click", abFormCard);
-$("#fileInput").addEventListener("change", e => { if (e.target.files[0]) loadCSVFile(e.target.files[0]); e.target.value = ""; });
+$("#fileInput").addEventListener("change", e => {
+  const fs = Array.from(e.target.files || []);
+  if (fs.length) handleFiles(fs);
+  e.target.value = "";
+});
 document.addEventListener("click", e => {
   if (e.target && e.target.id === "fnGo") computeFunnel(e.target.closest(".datacard"));
   if (e.target && e.target.id === "tsGo") computeTrend(e.target.closest(".datacard"));
@@ -2096,6 +2308,7 @@ function showSetupBox(){
   syncDeepBtn();
   syncImgBtn();
   syncLiveBtn();
+  renderAttBar();
   sideListRender();
   const _bl = $("#brandLogo"); if (_bl) _bl.src = LOGO_URI;
   renderAll();
