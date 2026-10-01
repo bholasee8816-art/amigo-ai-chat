@@ -116,6 +116,9 @@ header{display:flex; align-items:center; gap:10px; padding:12px 0 10px}
 .copybtn:hover{background:var(--line); color:var(--ink); transform:translateY(-1px)}
 .copybtn.ok{color:#188038; border-color:rgba(24,128,56,.35); background:rgba(24,128,56,.10)}
 .copybtn svg{width:13px; height:13px}
+.copybtn.vote{padding:5px 9px}
+.copybtn.vote.on{background:rgba(66,133,244,.16); border-color:rgba(66,133,244,.45); color:#8ab4f8}
+body:not(.dark) .copybtn.vote.on{color:#1a73e8}
 .fallbacknote{margin-top:10px; font-size:.72rem; color:var(--muted); white-space:normal}
 /* ---- sidebar ---- */
 .shell{display:flex; width:100%; max-width:1140px; margin:0 auto; height:100dvh}
@@ -129,6 +132,10 @@ header{display:flex; align-items:center; gap:10px; padding:12px 0 10px}
   background:transparent; color:var(--ink); font:inherit; font-size:.87rem; font-weight:600; cursor:pointer; transition:.14s}
 .sNew:hover{background:var(--hover)}
 .sNew svg{width:17px; height:17px}
+.sSearch{width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:12px; background:transparent;
+  color:var(--ink); font:inherit; font-size:.85rem; outline:none; margin-bottom:2px}
+.sSearch:focus{border-color:var(--line2)}
+.sSearch::placeholder{color:var(--muted)}
 .sList{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:3px; margin-top:2px}
 .srow{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; border:none; background:transparent;
   color:var(--ink); font:inherit; font-size:.85rem; text-align:left; cursor:pointer; transition:background .14s}
@@ -297,6 +304,7 @@ body.dark .overlay{background:rgba(0,0,0,.6)}
 /* icons: inline SVG, always visible */
 .hbtn svg, .toolbtn svg{width:19px; height:19px; pointer-events:none}
 #send svg{width:18px; height:18px; pointer-events:none}
+#micBtn.on{background:rgba(230,101,27,.18); color:#e6651b}
 /* dark mode: make the Anahata chakra light so it stays visible on a dark background */
 body.dark #gcha stop:nth-of-type(1){stop-color:#b7d1ff}
 body.dark #gcha stop:nth-of-type(2){stop-color:#8fb8ff}
@@ -350,6 +358,7 @@ body.dark .hero .hstar::after{background:radial-gradient(circle, rgba(150,190,25
     <span class="sBrand">Amigo</span>
     <button id="sideClose" class="hbtn" type="button" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
+  <input id="sideSearch" class="sSearch" type="text" placeholder="Search chats" autocomplete="off">
   <button id="sideNew" class="sNew" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg><span>New chat</span></button>
   <div class="sList" id="sideList"></div>
   <div class="sFoot">
@@ -381,6 +390,7 @@ body.dark .hero .hstar::after{background:radial-gradient(circle, rgba(150,190,25
   <div class="composer">
     <button id="plusBtn" class="toolbtn plus" type="button" title="Add a file, or switch a mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg></button>
     <textarea id="input" rows="1" placeholder="Ask Amigo anything…"></textarea>
+    <button id="micBtn" class="toolbtn" type="button" title="Speak your question" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a2.6 2.6 0 0 1 2.6 2.6v5a2.6 2.6 0 0 1-5.2 0v-5A2.6 2.6 0 0 1 12 4Z"/><path d="M6.5 11.5a5.5 5.5 0 0 0 11 0"/><path d="M12 17v3.5"/></svg></button>
     <button id="send" title="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6"/><path d="M6 12l6-6 6 6"/></svg></button>
     <div class="menu" id="toolMenu">
       <button id="attach" class="mitem" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2.5h7A2 2 0 0 1 20.5 10v6.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2Z"/></svg><span>Upload a data file (CSV)</span></button>
@@ -401,12 +411,6 @@ body.dark .hero .hstar::after{background:radial-gradient(circle, rgba(150,190,25
   <div class="modal">
     <h3>⚙️ Settings</h3>
     <p class="sub">Everything stays private in your browser.</p>
-
-    <div class="field">
-      <label>Skill / Expertise</label>
-      <select id="inSkill"></select>
-      <div class="hint">In Auto (default) the AI reads your message and picks the right skill by itself.</div>
-    </div>
 
     <div class="field" id="fConn">
       <label>Connectors — live data the AI can pull</label>
@@ -664,10 +668,21 @@ function copyToClipboard(text, btn){
 function addCopy(wrap, text){
   if (!wrap || !text) return;
   const row = document.createElement("div"); row.className = "copyrow";
+
   const btn = document.createElement("button"); btn.className = "copybtn"; btn.type = "button"; btn.title = "Copy this message";
   btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M6 15H5.5A2.5 2.5 0 0 1 3 12.5v-7A2.5 2.5 0 0 1 5.5 3h7A2.5 2.5 0 0 1 15 5.5V6"/></svg> Copy';
   btn.addEventListener("click", () => copyToClipboard(text, btn));
-  row.append(btn); wrap.append(row);
+
+  const thumbs = '<path d="M7 21V10.5l4.4-6.9A1.7 1.7 0 0 1 14.3 4.5V10h4.1a1.8 1.8 0 0 1 1.8 2.2l-1.2 6.2A2 2 0 0 1 17 21H7Z"/><path d="M7 10.5H4.6A1.6 1.6 0 0 0 3 12.1v7.3A1.6 1.6 0 0 0 4.6 21H7"/>';
+  const up = document.createElement("button"); up.className = "copybtn vote"; up.type = "button"; up.title = "Good answer";
+  up.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + thumbs + '</svg>';
+  const dn = document.createElement("button"); dn.className = "copybtn vote"; dn.type = "button"; dn.title = "Not helpful";
+  dn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(180 12 12)">' + thumbs + '</g></svg>';
+  up.addEventListener("click", () => { up.classList.toggle("on"); dn.classList.remove("on"); });
+  dn.addEventListener("click", () => { dn.classList.toggle("on"); up.classList.remove("on"); });
+
+  row.append(btn, up, dn);
+  wrap.append(row);
 }
 
 function addImage(bub, src, prompt){
@@ -1784,11 +1799,29 @@ document.addEventListener("click", (e) => {
   if (e.target.closest("#toolMenu") || e.target.closest("#plusBtn")) return;
   m.classList.remove("open");
 });
+/* voice input — only where the browser supports it */
+(function(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const b = $("#micBtn"); if (!b || !SR) return;
+  b.style.display = "";
+  const rec = new SR();
+  rec.lang = "en-IN"; rec.interimResults = false; rec.maxAlternatives = 1;
+  let on = false;
+  b.addEventListener("click", () => { if (on){ try { rec.stop(); } catch(e){} return; } try { rec.start(); } catch(e){} });
+  rec.onstart = () => { on = true; b.classList.add("on"); b.title = "Listening\u2026 tap to stop"; };
+  rec.onend = () => { on = false; b.classList.remove("on"); b.title = "Speak your question"; };
+  rec.onerror = () => { on = false; b.classList.remove("on"); b.title = "Speak your question"; };
+  rec.onresult = (e) => {
+    const t = e.results && e.results[0] && e.results[0][0] && e.results[0][0].transcript;
+    if (t){ inputEl.value = (inputEl.value ? inputEl.value.replace(/\s+$/, "") + " " : "") + t.trim(); inputEl.focus(); }
+  };
+})();
 $("#btnMenu").addEventListener("click", () => {
   const sd = $("#side"); if (sd) sd.classList.toggle("open");
   const sc = $("#scrim"); if (sc) sc.classList.toggle("show", !!(sd && sd.classList.contains("open")));
 });
 $("#sideClose").addEventListener("click", closeDrawer);
+$("#sideSearch").addEventListener("input", sideListRender);
 $("#scrim").addEventListener("click", closeDrawer);
 $("#sideNew").addEventListener("click", () => { closeDrawer(); $("#btnNew").click(); });
 $("#sideSet").addEventListener("click", () => { closeDrawer(); $("#btnSet").click(); });
@@ -1868,7 +1901,6 @@ function syncSettingsFields(){
   $("#inGKey").value = cn.gkey || ""; $("#inGCx").value = cn.gcx || ""; $("#inGhTok").value = cn.ghToken || "";
   $("#cImg").checked = !!settings.imageMode;
   $("#cTrend").checked = (cn.trends !== false);
-  $("#inSkill").value = settings.skill;
   applyProvUI();
 }
 document.querySelectorAll('input[name="prov"]').forEach(r => r.addEventListener("change", applyProvUI));
@@ -1887,13 +1919,7 @@ $("#btnSave").addEventListener("click", () => {
     web: $("#cWeb").checked, stack: $("#cStack").checked, hn: $("#cHn").checked, books: $("#cBooks").checked,
     github: $("#cGh").checked, weather: $("#cWx").checked, trends: $("#cTrend").checked, ghToken: $("#inGhTok").value.trim()
   };
-  const prevSkill = settings.skill;
-  settings.skill = $("#inSkill").value;
-  if (settings.skill !== "auto" && settings.skill !== prevSkill){
-    curSkill = settings.skill;
-    dataState = null;
-    updateHeader(); renderAll();
-  }
+  settings.skill = "auto";
   settings.theme = document.body.classList.contains("dark") ? "dark" : "light";
   saveAllSettings(); overlay.classList.remove("open");
 });
@@ -1904,17 +1930,29 @@ $("#btnClear").addEventListener("click", () => {
 });
 
 /* ---------------- saved chats: list + delete ---------------- */
+function chatTitle(id){
+  const h = _histories[id] || [];
+  const m = h.find(x => x && x.role === "user" && x.content);
+  let t = m ? String(m.content).replace(/\s+/g, " ").trim() : "";
+  if (!t) t = (SKILLS[id] || {}).name || id;
+  return t.length > 36 ? t.slice(0, 36) + "\u2026" : t;
+}
 function sideListRender(){
   const box = $("#sideList"); if (!box) return;
+  const q = ($("#sideSearch") && $("#sideSearch").value || "").trim().toLowerCase();
   box.innerHTML = "";
-  const ids = Object.keys(SKILLS).filter(id => (_histories[id] || []).length > 0);
-  if (!ids.length){ box.innerHTML = '<div class="sEmpty">No chats yet — start one below.</div>'; return; }
+  let ids = Object.keys(SKILLS).filter(id => (_histories[id] || []).length > 0);
+  if (q) ids = ids.filter(id => chatTitle(id).toLowerCase().includes(q));
+  if (!ids.length){
+    box.innerHTML = '<div class="sEmpty">' + (q ? "No chats match that." : "No chats yet \u2014 start one below.") + '</div>';
+    return;
+  }
   ids.forEach(id => {
     const sk = SKILLS[id] || {};
     const row = document.createElement("button");
     row.type = "button";
     row.className = "srow" + (id === curSkill ? " on" : "");
-    row.innerHTML = '<span class="si">' + (sk.icon || "\u{1F4AC}") + '</span><span class="sn">' + esc(sk.name || id) + '</span>';
+    row.innerHTML = '<span class="si">' + (sk.icon || "\u{1F4AC}") + '</span><span class="sn">' + esc(chatTitle(id)) + '</span>';
     row.addEventListener("click", () => openChat(id));
     box.append(row);
   });
@@ -2048,7 +2086,8 @@ function showSetupBox(){
     settings.provider = "puter";
     saveAllSettings();
   }
-  curSkill = settings.skill !== "auto" ? settings.skill : "amigo";
+  settings.skill = "auto";
+  curSkill = "amigo";
   for (const id of Object.keys(SKILLS)) _histories[id] = histLoad(id);
   /* one-time repair: write the de-duplicated history back so old repeats stay gone */
   for (const id of Object.keys(SKILLS)){
@@ -2064,9 +2103,6 @@ function showSetupBox(){
       if (Array.isArray(old) && old.length) _histories.amigo = dedupeHistory(old.filter(m => m && (m.role === "user" || m.role === "assistant") && m.content));
     } catch(e){}
   }
-  const sel = $("#inSkill");
-  sel.innerHTML = '<option value="auto">Auto — the AI picks by itself (recommended)</option>' +
-    Object.entries(SKILLS).map(([id, s]) => '<option value="' + id + '">' + s.icon + "  " + esc(s.name) + "</option>").join("");
   updateHeader();
   syncDeepBtn();
   syncImgBtn();
