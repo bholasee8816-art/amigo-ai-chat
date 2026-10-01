@@ -117,17 +117,6 @@ header{display:flex; align-items:center; gap:10px; padding:12px 0 10px}
 .copybtn.ok{color:#188038; border-color:rgba(24,128,56,.35); background:rgba(24,128,56,.10)}
 .copybtn svg{width:13px; height:13px}
 .fallbacknote{margin-top:10px; font-size:.72rem; color:var(--muted); white-space:normal}
-/* ---- a long, structured answer (Google-AI-Mode style) ---- */
-.msg.ai .bubble.md{white-space:normal}
-.ssum{background:rgba(66,133,244,.10); border-left:3px solid rgba(66,133,244,.6); border-radius:0 12px 12px 0;
-  padding:10px 14px; margin:0 0 14px; line-height:1.7}
-body.dark .ssum{background:rgba(66,133,244,.16); border-left-color:rgba(138,180,248,.75)}
-.shead{display:flex; gap:9px; align-items:baseline; font-weight:700; font-size:1rem; margin:17px 0 9px; line-height:1.45}
-.shead:first-child{margin-top:2px}
-.snum{color:#8ab4f8; font-variant-numeric:tabular-nums; flex:none}
-.sbullet{position:relative; padding-left:19px; margin:7px 0; line-height:1.7}
-.sbullet::before{content:"\u2022"; position:absolute; left:4px; color:var(--muted)}
-.para{margin:10px 0; line-height:1.75}
 /* ---- sidebar ---- */
 .shell{display:flex; width:100%; max-width:1140px; margin:0 auto; height:100dvh}
 .shell .app{flex:1; max-width:768px; margin:0 auto}
@@ -311,8 +300,6 @@ body.dark .overlay{background:rgba(0,0,0,.6)}
 /* icons: inline SVG, always visible */
 .hbtn svg, .toolbtn svg{width:19px; height:19px; pointer-events:none}
 #send svg{width:18px; height:18px; pointer-events:none}
-#send.stop svg{display:none}
-#send.stop::before{content:""; display:block; width:12px; height:12px; border-radius:3px; background:var(--btnink)}
 /* dark mode: make the Anahata chakra light so it stays visible on a dark background */
 body.dark #gcha stop:nth-of-type(1){stop-color:#b7d1ff}
 body.dark #gcha stop:nth-of-type(2){stop-color:#8fb8ff}
@@ -472,11 +459,7 @@ body.dark .hero .hstar{filter:drop-shadow(0 0 14px rgba(90,140,230,.45))}
     <div class="field">
       <label>AI service (provider)</label>
       <div class="prov">
-        <label><input type="radio" name="prov" value="gemini" checked>
-          <span><span class="pn">Google Gemini <span style="color:#8ab4f8;font-size:.72rem">— Google AI (recommended)</span></span>
-          <span class="pd" style="display:block">Get a free key: open <b>aistudio.google.com</b> → sign in with Google → click <b>"Create API key"</b> → copy the new key and paste it below. No key yet? The app answers through free Puter until you add one.</span></span>
-        </label>
-        <label><input type="radio" name="prov" value="puter">
+        <label><input type="radio" name="prov" value="puter" checked>
           <span><span class="pn">Puter <span style="color:#188038;font-size:.72rem">— free, no API key</span></span>
           <span class="pd" style="display:block">On first use a small sign-in popup may appear (a free puter.com account). Leave this selected and you never have to change anything: if you also add an API key below, your provider is tried first and Puter answers automatically whenever it does not.</span></span>
         </label>
@@ -550,7 +533,7 @@ const $ = s => document.querySelector(s);
 const chatEl = $("#chat"), inputEl = $("#input"), sendEl = $("#send");
 
 const DEFAULTS = {
-  provider: "gemini", model: "", apiKey: "",
+  provider: "puter", model: "", apiKey: "",
   baseUrl: "https://api.openai.com/v1/chat/completions",
   fullFramework: false, skill: "auto", theme: "light", imageMode: false,
   deepSearch: false,
@@ -630,22 +613,9 @@ function esc(t){
 function mdLite(t){
   let h = esc(t);
   h = h.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  const lines = h.split("\n");
-  const out = [];
-  let first = true;
-  for (let i = 0; i < lines.length; i++){
-    const tr = lines[i].trim();
-    if (!tr) continue;
-    let m = tr.match(/^#{1,4}\s*(.+)$/);
-    if (m){ out.push('<div class="shead">' + m[1] + '</div>'); first = false; continue; }
-    m = tr.match(/^(\d{1,2})[.)]\s+(.{2,120})$/);
-    if (m){ out.push('<div class="shead"><span class="snum">' + m[1] + '.</span><span>' + m[2] + '</span></div>'); first = false; continue; }
-    m = tr.match(/^[-\u2022*]\s+(.+)$/);
-    if (m){ out.push('<div class="sbullet">' + m[1] + '</div>'); first = false; continue; }
-    out.push('<div class="' + (first ? "ssum" : "para") + '">' + tr + '</div>');
-    first = false;
-  }
-  return out.length ? out.join("") : esc(t);
+  h = h.replace(/^\s*[-•]\s+/gm, "• ");
+  h = h.replace(/\n/g, "<br>");
+  return h;
 }
 function scrollDown(){ chatEl.scrollTop = chatEl.scrollHeight; }
 
@@ -661,7 +631,7 @@ function addMsg(role, text, opts){
   const bub = document.createElement("div"); bub.className = "bubble";
   if (opts && opts.typing){ bub.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>'; }
   else if (opts && opts.raw){ bub.textContent = text || ""; }
-  else { bub.innerHTML = mdLite(text); bub.classList.add("md"); }
+  else { bub.innerHTML = mdLite(text); }
   if (opts && opts.image) addImage(bub, opts.image, opts.prompt);
   if (opts && opts.sources && opts.sources.length) addSources(bub, opts.sources);
   wrap.append(bub); chatEl.append(wrap);
@@ -795,7 +765,7 @@ function buildSystemPrompt(){
   if (settings.skill === "auto")
     sys += "The active skill was auto-selected from the user's message: '" + s.name + "' (" + s.tag + "). Apply it. If the conversation moves outside it, stay helpful and warm anyway. ";
   sys += "Tone: warm, affectionate and caring \u2014 talk lovingly (\u092a\u094d\u092f\u093e\u0930 \u0938\u0947) with the user. Be lively and interesting \u2014 a little playful, never dry or robotic.\n\n";
-  sys += "Reply style (always): open with a short summary of two or three lines that answers the question directly \u2014 no greeting, and never repeat the question. Then go deep and be generous with detail: organise everything else under numbered sections (1. 2. 3.) and use bullet points for the finer points, starting each bullet with the key term, date or number in bold. Cover the whole topic properly instead of giving a short answer, while keeping every line easy to read. Never use the '#' character or markdown headings. When the message is simply a casual, friendly chat, a short warm reply is still the right answer \u2014 use the long, structured format when the question actually asks for information, an explanation or research. If the active skill below demands a particular structure, follow that structure.\n\n" + s.sys;
+  sys += "Reply style (always): do NOT open with a preamble, greeting or a repeat of the question \u2014 start straight in with the substance. Whenever the answer has more than one point, lay it out as short bullet points (\u2022) or a numbered list (1. 2. 3.) rather than one long paragraph. Keep each line short and skimmable. Never use the '#' character or markdown headings in your replies. When a point matters, set it off with a number (1, 2, 3) or a bullet dot instead. If the active skill below demands a particular structure, follow that structure and still keep it tight.\n\n" + s.sys;
   if (curSkill === "amigo" && settings.fullFramework)
     sys += "\n\n---\n\n# Embedded reference: Deep Framework (parts 1-5)\n\n" + FRAMEWORK_FULL;
   return sys;
@@ -1126,15 +1096,7 @@ function researchBlock(res){
 }
 
 /* ---------------- send flow ---------------- */
-function setBusy(b){
-  busy = b;
-  sendEl.classList.toggle("stop", !!b);
-  sendEl.title = b ? "Stop" : "Send";
-  sendEl.disabled = false;
-  inputEl.disabled = b;
-  const at = $("#attach"); if (at) at.disabled = b;
-  const ab = $("#abBtn"); if (ab) ab.disabled = b;
-}
+function setBusy(b){ busy = b; sendEl.disabled = b; inputEl.disabled = b; $("#attach").disabled = b; $("#abBtn").disabled = b; }
 
 async function send(){
   const text = inputEl.value.trim();
@@ -1161,7 +1123,7 @@ async function send(){
     try {
       const src = await genImage(text);
       const cap = "🎨 Here is your image.";
-      bub.innerHTML = mdLite(cap); bub.classList.add("md");
+      bub.innerHTML = mdLite(cap);
       addImage(bub, src, text);
       if (bubWrap) addCopy(bubWrap, text);
       curHistory().push({ role: "assistant", content: cap, image: src, imagePrompt: text });
@@ -1207,7 +1169,8 @@ async function send(){
     nw.className = "msg ai";
     nw.style.justifyContent = "center";
     nw.append(nb);
-    if (!window.__noKeyNoted){ window.__noKeyNoted = true; chatEl.append(nw); scrollDown(); }
+    chatEl.append(nw);
+    scrollDown();
   }
   let fellBackFrom = "";
   try {
@@ -1216,11 +1179,9 @@ async function send(){
       const stream = await callPuter(msgs);
       bub.innerHTML = "";
       for await (const part of stream){
-        if (window.__stopFlag) break;
         const t = part && (part.text || (part.message && part.message.content));
         if (t){ reply += (typeof t === "string" ? t : String(t)); bub.textContent = reply; scrollDown(); }
       }
-      if (window.__stopFlag && reply) reply += "\n\n_(stopped)_";
       if (!reply) throw new Error("Empty reply — please try again.");
     } else {
       /* your chosen provider runs first… */
@@ -1249,7 +1210,7 @@ async function send(){
         if (!reply) throw perr;
       }
     }
-    bub.innerHTML = mdLite(reply); bub.classList.add("md");
+    bub.innerHTML = mdLite(reply);
     if (bubWrap) addCopy(bubWrap, reply);
     if (fellBackFrom){
       const fn = document.createElement("div");
@@ -1278,7 +1239,6 @@ async function send(){
     bub.append(rb);
   } finally {
     if (bubWrap) bubWrap.classList.remove("answering");
-    window.__stopFlag = false;
     setBusy(false); inputEl.focus();
   }
   scrollDown();
@@ -1793,7 +1753,7 @@ function computeFunnel(card){
 }
 
 /* ---------------- ui wiring ---------------- */
-sendEl.addEventListener("click", () => { if (busy){ window.__stopFlag = true; return; } send(); });
+sendEl.addEventListener("click", send);
 inputEl.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(); } });
 inputEl.addEventListener("input", () => { inputEl.style.height = "auto"; inputEl.style.height = Math.min(inputEl.scrollHeight, 130) + "px"; });
 $("#attach").addEventListener("click", () => $("#fileInput").click());
@@ -2073,6 +2033,11 @@ function showSetupBox(){
     if (s) settings = Object.assign({}, DEFAULTS, s);
   } catch(e){}
   if (!SKILLS[settings.skill] && settings.skill !== "auto") settings.skill = "auto";
+  /* self-heal: key-based provider without a key -> Puter (free, no key) */
+  if (settings.provider !== "puter" && !settings.apiKey){
+    settings.provider = "puter";
+    saveAllSettings();
+  }
   curSkill = settings.skill !== "auto" ? settings.skill : "amigo";
   for (const id of Object.keys(SKILLS)) _histories[id] = histLoad(id);
   /* one-time repair: write the de-duplicated history back so old repeats stay gone */
