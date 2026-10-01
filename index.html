@@ -413,54 +413,11 @@ body.dark .hero .hstar::after{background:radial-gradient(circle, rgba(150,190,25
     <p class="sub">Everything stays private in your browser.</p>
 
     <div class="field" id="fConn">
-      <label>Connectors — live data the AI can pull</label>
-      <div class="prov">
-        <label><input type="checkbox" id="cGoogle">
-          <span><span class="pn">🔎 Google Search <span style="color:#188038;font-size:.72rem">— the real Google index</span></span>
-          <span class="pd" style="display:block">Uses Google's own free Programmable Search API. One-time setup: get a key at <b>console.cloud.google.com</b> (enable "Custom Search API"), and a search-engine ID at <b>programmablesearchengine.google.com</b> — paste both below.</span></span>
-        </label>
-        <label><input type="checkbox" id="cWeb">
-          <span><span class="pn">🌐 Wikipedia, Wikidata + DuckDuckGo</span>
-          <span class="pd" style="display:block">Encyclopaedia pages, quick facts and instant answers, with links. No key needed.</span></span>
-        </label>
-        <label><input type="checkbox" id="cStack">
-          <span><span class="pn">💬 Stack Overflow</span>
-          <span class="pd" style="display:block">Answers and discussions from Stack Exchange — great for anything technical. No key needed.</span></span>
-        </label>
-        <label><input type="checkbox" id="cHn">
-          <span><span class="pn">📰 Global news (Hacker News + GDELT)</span>
-          <span class="pd" style="display:block">Tech discussions plus worldwide news coverage (GDELT), refreshed live. No key needed.</span></span>
-        </label>
-        <label><input type="checkbox" id="cBooks">
-          <span><span class="pn">📚 Books &amp; research papers</span>
-          <span class="pd" style="display:block">Books (Open Library) and research papers (Crossref + OpenAlex), with links. No key needed.</span></span>
-        </label>
-        <label><input type="checkbox" id="cGh">
-          <span><span class="pn">🐙 GitHub</span>
-          <span class="pd" style="display:block">Public repositories and issues. Optional token below raises the limit.</span></span>
-        </label>
-        <label><input type="checkbox" id="cWx">
-          <span><span class="pn">🌦️ Weather</span>
-          <span class="pd" style="display:block">Live weather and 3-day forecast for any city (Open-Meteo). No key needed.</span></span>
-        </label>
-        <label><input type="checkbox" id="cTrend">
-          <span><span class="pn">📈 Trending right now</span>
-          <span class="pd" style="display:block">What the world is reading and talking about today — Wikipedia's most-viewed pages, Hacker News front page and world news. No key needed.</span></span>
-        </label>
-      </div>
-      <input type="text" id="inGKey" placeholder="Google API key — for Google Search (optional)" style="margin-top:9px">
-      <input type="text" id="inGCx" placeholder="Google search-engine ID (cx) — for Google Search" style="margin-top:7px">
+      <label>Optional keys — everything else works with no key</label>
+      <input type="text" id="inGKey" placeholder="Google API key — only if you want real Google Search">
+      <input type="text" id="inGCx" placeholder="Google search-engine ID (cx) — used with the key" style="margin-top:7px">
       <input type="text" id="inGhTok" placeholder="GitHub token — optional, only for higher limits" style="margin-top:7px">
-      <div class="hint">Deep Search 🌐 checks every enabled source at once and shows you the links it used. Everything runs in your browser — no server.</div>
-    </div>
-
-    <div class="field">
-      <label>🎨 Image generation</label>
-      <div class="switch">
-        <input type="checkbox" id="cImg">
-        <span><span class="pn">Draw images from your description</span>
-        <span class="pd" style="display:block">Free, no API key (uses Puter). Press 🎨 in the chat box, or simply ask “draw me…” — the picture appears in the chat and you can download it.</span></span>
-      </div>
+      <div class="hint">Built in and always on, with no key and no setup: Wikipedia, Wikidata, DuckDuckGo, Stack Overflow, Hacker News, GDELT world news, Open Library, Crossref, OpenAlex, GitHub, weather, trending now, and image generation. Everything runs in your browser — no server.</div>
     </div>
 
     <div class="field" id="fChats">
@@ -837,7 +794,8 @@ async function callOpenAICompatible(baseUrl, model, msgs){
 }
 
 /* ---------------- connectors & deep search ---------------- */
-const getConn = () => settings.connectors || DEFAULTS.connectors;
+const KEYLESS = { web: true, stack: true, hn: true, books: true, github: true, weather: true, trends: true };
+const getConn = () => Object.assign({}, DEFAULTS.connectors, settings.connectors || {}, KEYLESS);
 async function fetchJSON(url, opts, ms){
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms || 9000);
@@ -1045,6 +1003,7 @@ async function trendItems(){
   try { (await gdeltSearch("trending OR breaking")).slice(0, 3).forEach(x => out.push(x)); } catch(e){}
   return out;
 }
+const wantsLive = t => /\b(latest|current|today|tonight|right now|nowadays|this (week|month|year)|recent|breaking|news|update|price|rate|score|match|trend|trending|live)\b|\u0906\u091c|\u0905\u092d\u0940|\u0924\u093e\u091c\u093c\u093e|\u0916\u093c\u092c\u0930|\u0938\u092e\u093e\u091a\u093e\u0930|\u0926\u093e\u092e|\u092d\u093e\u0935/i.test(t);
 const wantsTrends = t => /trend|trending|what'?s (hot|new|going on|happening)|latest news|in the news|viral|aaj kya|\u0906\u091c \u0915\u094d\u092f\u093e|\u091f\u094d\u0930\u0947\u0902\u0921|\u0924\u093e\u091c\u093c\u093e \u0916\u093c\u092c\u0930|kya chal raha/i.test(t);
 const wantsWeather = t => /weather|temperature|forecast|how (hot|cold)|mausam|मौसम|बारिश|rain|humidity|garmi|sardi/i.test(t);
 const wantsGithub  = t => /github|\brepo(sitory)?\b|pull request|\bpr\b|issue|commit|open source|stars?\b/i.test(t);
@@ -1172,7 +1131,7 @@ async function send(){
   let sources = null;
   try {
     const deep = !!settings.deepSearch;
-    if (deep || wantsWeather(text) || wantsGithub(text) || wantsTrends(text) || settings.liveMode || /https?:\/\//.test(text)){
+    if (deep || wantsWeather(text) || wantsGithub(text) || wantsTrends(text) || wantsLive(text) || settings.liveMode || /https?:\/\//.test(text)){
       bub.innerHTML = '<span class="searching"><i></i> Researching live sources…</span>';
       sources = await runConnectors(text, deep);
       if (!sources) bub.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
@@ -1895,12 +1854,7 @@ function syncSettingsFields(){
   $("#inBase").value = settings.baseUrl || "";
   $("#inFull").checked = !!settings.fullFramework;
   const cn = getConn();
-  $("#cGoogle").checked = !!cn.google; $("#cWeb").checked = !!cn.web; $("#cStack").checked = !!cn.stack;
-  $("#cHn").checked = !!cn.hn; $("#cBooks").checked = !!cn.books; $("#cGh").checked = !!cn.github;
-  $("#cWx").checked = !!cn.weather;
   $("#inGKey").value = cn.gkey || ""; $("#inGCx").value = cn.gcx || ""; $("#inGhTok").value = cn.ghToken || "";
-  $("#cImg").checked = !!settings.imageMode;
-  $("#cTrend").checked = (cn.trends !== false);
   applyProvUI();
 }
 document.querySelectorAll('input[name="prov"]').forEach(r => r.addEventListener("change", applyProvUI));
@@ -1913,11 +1867,12 @@ $("#btnSave").addEventListener("click", () => {
   settings.apiKey = $("#inKey").value.trim();
   settings.baseUrl = $("#inBase").value.trim() || (settings.provider === "groq" ? GROQ_URL : (settings.provider === "openrouter" ? OR_URL : DEFAULTS.baseUrl));
   settings.fullFramework = $("#inFull").checked;
-  settings.imageMode = $("#cImg").checked;
+  const _ib = $("#btnImg"); settings.imageMode = !!(_ib && _ib.classList.contains("on"));
   settings.connectors = {
-    google: $("#cGoogle").checked, gkey: $("#inGKey").value.trim(), gcx: $("#inGCx").value.trim(),
-    web: $("#cWeb").checked, stack: $("#cStack").checked, hn: $("#cHn").checked, books: $("#cBooks").checked,
-    github: $("#cGh").checked, weather: $("#cWx").checked, trends: $("#cTrend").checked, ghToken: $("#inGhTok").value.trim()
+    gkey: $("#inGKey").value.trim(), gcx: $("#inGCx").value.trim(),
+    google: !!(($("#inGKey").value.trim()) && ($("#inGCx").value.trim())),
+    web: true, stack: true, hn: true, books: true,
+    github: true, weather: true, trends: true, ghToken: $("#inGhTok").value.trim()
   };
   settings.skill = "auto";
   settings.theme = document.body.classList.contains("dark") ? "dark" : "light";
