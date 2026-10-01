@@ -42,15 +42,15 @@ header{display:flex; align-items:center; gap:10px; padding:12px 0 10px}
 #chat::-webkit-scrollbar-thumb{background:var(--line2); border-radius:8px}
 #chat::-webkit-scrollbar-track{background:transparent}
 /* messages */
-.msg{display:flex; margin-bottom:26px; gap:12px; animation:fadeUp .22s ease}
+.msg{display:flex; margin-bottom:26px; gap:9px; animation:fadeUp .22s ease}
 @keyframes fadeUp{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none}}
 .msg .who{width:28px; height:28px; flex:none; margin-top:1px}
 .msg .who svg{width:100%; height:100%}
 .msg.me{justify-content:flex-end}
 .msg.me .who{display:none}
 .bubble{max-width:100%; font-size:.95rem; line-height:1.72; word-wrap:break-word; white-space:pre-wrap}
-.msg.ai .bubble{background:none; border:none; box-shadow:none; padding:0; color:var(--ink)}
-.msg.me .bubble{background:var(--bubble); border-radius:20px; padding:10px 16px; color:var(--ink); max-width:78%}
+.msg.ai .bubble{background:none; border:none; box-shadow:none; padding:0; color:var(--ink); max-width:66%}
+.msg.me .bubble{background:var(--bubble); border-radius:20px; padding:10px 16px; color:var(--ink); max-width:66%}
 .bubble strong{font-weight:700}
 /* empty state */
 .hero{padding:11vh 8px 22px; text-align:center}
@@ -67,7 +67,7 @@ header{display:flex; align-items:center; gap:10px; padding:12px 0 10px}
 .gcard:hover{background:var(--hover); border-color:var(--line2)}
 .gcard .gi{font-size:18px; height:22px}
 .gcard .gt{font-size:.85rem; line-height:1.45; color:var(--muted)}
-@media (max-width:560px){ .gcards{grid-template-columns:1fr} .hero h2{font-size:1.6rem} .hero{padding:7vh 6px 18px} }
+@media (max-width:560px){ .gcards{grid-template-columns:1fr} .hero h2{font-size:1.6rem} .hero{padding:7vh 6px 18px} .msg.ai .bubble{max-width:72%} .msg.me .bubble{max-width:72%} }
 .typing{display:inline-flex; gap:5px; padding:8px 0; align-items:center}
 .typing i{width:7px; height:7px; border-radius:50%; background:var(--muted); opacity:.4; animation:blink 1.2s infinite}
 .typing i:nth-child(2){animation-delay:.2s}
