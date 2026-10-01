@@ -14,8 +14,8 @@ Live demo (GitHub Pages): https://bholasee8816-art.github.io/amigo-ai-chat/
 - **No skill to pick** — all 25 skills live inside the file and are chosen automatically from what you write. There is no skill selector anywhere; just type.
 - **Long, structured answers** — replies come back in the style of Google's AI Mode: a short highlighted summary, then numbered sections and bullet points with the key terms in bold. A **Stop** button lets you cut a long answer short.
 - **Google Gemini first** — Gemini is the default provider, with free Puter as the automatic fallback, so the app always answers even before you add a key.
-- **Deep Search** — switch it on and the app checks several big sites at once (Wikipedia, Wikidata, DuckDuckGo, Stack Overflow, Hacker News, GDELT news, Open Library, Crossref, OpenAlex, GitHub, Open-Meteo weather), then answers with clickable source links.
-- **Live trends** — ask "what's trending?" and it reads what the world is looking at right now: Wikipedia's most-viewed pages, the Hacker News front page and world news.
+- **Everything keyless is built in and always on** — Wikipedia, Wikidata, DuckDuckGo, Stack Overflow, Hacker News, GDELT world news, Open Library, Crossref, OpenAlex, GitHub, weather, trending now and image generation all work with no key, no signup and no switches to flip. Deep Search then checks them all at once and answers with clickable source links.
+- **Live data, automatically** — ask anything current ("latest…", "today…", "what's trending?", "आज क्या…") and the app quietly pulls live sources before answering. Ask "what's trending?" and it reads what the world is looking at right now: Wikipedia's most-viewed pages, the Hacker News front page and world news.
 - **Pasted links are read** — paste any URL and the app fetches that page and summarises it.
 - **Image generation** — ask for a picture ("draw me…") and the app draws it right in the chat, with a download button. Free and keyless (uses Puter).
 - **A little toolbar under every reply** — Copy, plus thumbs-up and thumbs-down, just like NotebookLM.
