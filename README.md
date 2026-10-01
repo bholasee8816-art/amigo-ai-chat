@@ -11,16 +11,18 @@ Live demo (GitHub Pages): https://bholasee8816-art.github.io/amigo-ai-chat/
 ## Highlights
 
 - **25 built-in skills** — product analytics, metric reasoning, A/B testing, time-series, deck building, design critique, UI critique, file triage, changelog reporting and more. Each one carries its own expert instructions.
-- **Auto-routing** — on the first message, the app reads what you asked and picks the right skill by itself. You can also pin a skill from Settings.
+- **No skill to pick** — all 25 skills live inside the file and are chosen automatically from what you write. There is no skill selector anywhere; just type.
 - **Long, structured answers** — replies come back in the style of Google's AI Mode: a short highlighted summary, then numbered sections and bullet points with the key terms in bold. A **Stop** button lets you cut a long answer short.
 - **Google Gemini first** — Gemini is the default provider, with free Puter as the automatic fallback, so the app always answers even before you add a key.
 - **Deep Search** — switch it on and the app checks several big sites at once (Wikipedia, Wikidata, DuckDuckGo, Stack Overflow, Hacker News, GDELT news, Open Library, Crossref, OpenAlex, GitHub, Open-Meteo weather), then answers with clickable source links.
 - **Live trends** — ask "what's trending?" and it reads what the world is looking at right now: Wikipedia's most-viewed pages, the Hacker News front page and world news.
 - **Pasted links are read** — paste any URL and the app fetches that page and summarises it.
 - **Image generation** — ask for a picture ("draw me…") and the app draws it right in the chat, with a download button. Free and keyless (uses Puter).
-- **Copy any message** — a small Copy button sits under every message, yours and the AI's.
+- **A little toolbar under every reply** — Copy, plus thumbs-up and thumbs-down, just like NotebookLM.
+- **Search your chats** — the sidebar has a search box, and each chat is named after your first message.
+- **Voice input** — a microphone in the composer (where the browser supports it) turns your speech into the question.
 - **Browser-side data tools** — drop in a CSV for a data profile, or run a funnel analysis, trend chart, segmentation and an A/B test calculator right in the page.
-- **A modern, minimal interface** — dark by default (light one tap away), a left sidebar with all your chats, a soft glow behind the greeting, and one pill composer where everything lives inside the **+** menu: upload a data file, the A/B calculator, image generation, live trends and deep search.
+- **A modern, minimal interface** — dark by default (light one tap away), a NotebookLM-style left sidebar (search, chat list, Settings), a ring of light that turns slowly around the logo, and one pill composer where everything lives inside the **+** menu: upload a data file, the A/B calculator, image generation, live trends and deep search.
 - **Private** — everything runs in your browser. Chats and settings live in your browser's `localStorage`.
 
 ## Run it
