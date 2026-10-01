@@ -117,6 +117,63 @@ header{display:flex; align-items:center; gap:10px; padding:12px 0 10px}
 .copybtn.ok{color:#188038; border-color:rgba(24,128,56,.35); background:rgba(24,128,56,.10)}
 .copybtn svg{width:13px; height:13px}
 .fallbacknote{margin-top:10px; font-size:.72rem; color:var(--muted); white-space:normal}
+/* ---- sidebar ---- */
+.shell{display:flex; width:100%; max-width:1140px; margin:0 auto; height:100dvh}
+.shell .app{flex:1; max-width:768px; margin:0 auto}
+#side{width:252px; flex:none; background:var(--panel); border-right:1px solid var(--line);
+  display:flex; flex-direction:column; gap:10px; padding:14px 12px}
+.sTop{display:flex; align-items:center; justify-content:space-between; padding:0 4px 4px}
+.sBrand{font-weight:700; font-size:.98rem; letter-spacing:-.01em}
+#sideClose{display:none}
+.sNew{display:flex; align-items:center; gap:10px; padding:11px 13px; border:1px solid var(--line2); border-radius:13px;
+  background:transparent; color:var(--ink); font:inherit; font-size:.87rem; font-weight:600; cursor:pointer; transition:.14s}
+.sNew:hover{background:var(--hover)}
+.sNew svg{width:17px; height:17px}
+.sList{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:3px; margin-top:2px}
+.srow{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; border:none; background:transparent;
+  color:var(--ink); font:inherit; font-size:.85rem; text-align:left; cursor:pointer; transition:background .14s}
+.srow:hover{background:var(--hover)}
+.srow.on{background:var(--hover); font-weight:600}
+.srow .si{font-size:15px}
+.srow .sn{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.sEmpty{font-size:.8rem; color:var(--muted); padding:10px 12px}
+.sFoot{border-top:1px solid var(--line); padding-top:10px}
+.sFootBtn{display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px; border-radius:12px; border:none;
+  background:transparent; color:var(--ink); font:inherit; font-size:.86rem; cursor:pointer}
+.sFootBtn:hover{background:var(--hover)}
+.sFootBtn svg{width:17px; height:17px; color:var(--muted)}
+.scrim{display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:40}
+#btnMenu{display:none}
+@media (max-width:860px){
+  #side{position:fixed; left:0; top:0; bottom:0; z-index:50; width:266px; transform:translateX(-103%);
+    transition:transform .22s ease; box-shadow:0 0 50px rgba(0,0,0,.45)}
+  #side.open{transform:none}
+  .scrim.show{display:block}
+  #sideClose{display:grid}
+  #btnMenu{display:grid}
+  .shell .app{max-width:100%}
+}
+/* ---- the "+" menu (Gemini-style floating card) ---- */
+.composer{position:relative}
+.menu{display:none; position:absolute; left:4px; bottom:calc(100% + 10px); min-width:262px; z-index:35;
+  background:var(--field); border:1px solid var(--line); border-radius:18px; padding:8px;
+  box-shadow:0 24px 54px -20px rgba(0,0,0,.55)}
+.menu.open{display:block; animation:menuIn .16s ease}
+@keyframes menuIn{from{opacity:0; transform:translateY(7px)} to{opacity:1; transform:none}}
+.mitem{display:flex; align-items:center; gap:12px; width:100%; text-align:left; font:inherit; font-size:.87rem;
+  color:var(--ink); background:transparent; border:none; border-radius:12px; padding:11px 12px; cursor:pointer; transition:background .14s}
+.mitem:hover{background:var(--hover)}
+.mitem svg{width:18px; height:18px; flex:none; color:var(--muted)}
+.mitem > span:first-of-type{flex:1}
+.mitem .chk{opacity:0; font-weight:700; color:var(--ink)}
+.mitem.on .chk{opacity:1}
+.mdiv{height:1px; background:var(--line); margin:6px 8px}
+/* ---- the soft glow behind the greeting ---- */
+.hero{position:relative}
+.hero::before{content:""; position:absolute; left:50%; top:34%; width:min(460px,90vw); height:min(460px,90vw);
+  transform:translate(-50%,-50%); border-radius:50%; pointer-events:none;
+  background:radial-gradient(circle, rgba(66,133,244,.15), rgba(155,114,203,.09) 45%, transparent 70%)}
+body.dark .hero::before{background:radial-gradient(circle, rgba(66,133,244,.22), rgba(155,114,203,.14) 45%, transparent 72%)}
 /* the logo is now an image — keep it crisp in every theme */
 .lgimg{width:100%; height:100%; object-fit:contain; display:block}
 /* while a reply is being written the bubble comes alive in colour */
@@ -277,8 +334,22 @@ body.dark .hero .hstar{filter:drop-shadow(0 0 14px rgba(90,140,230,.45))}
   </defs>
 </svg>
 
+<div class="shell">
+<aside id="side">
+  <div class="sTop">
+    <span class="sBrand">Amigo</span>
+    <button id="sideClose" class="hbtn" type="button" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <button id="sideNew" class="sNew" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg><span>New chat</span></button>
+  <div class="sList" id="sideList"></div>
+  <div class="sFoot">
+    <button id="sideSet" class="sFootBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9"/><path d="M18.5 6H20"/><circle cx="15.5" cy="6" r="2.2"/><path d="M4 12h3"/><path d="M12.5 12H20"/><circle cx="9.5" cy="12" r="2.2"/><path d="M4 18h9"/><path d="M18.5 18H20"/><circle cx="15.5" cy="18" r="2.2"/></svg><span>Settings</span></button>
+  </div>
+</aside>
+
 <div class="app">
   <header>
+    <button class="hbtn" id="btnMenu" type="button" title="Your chats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <div class="brand">
       <div class="star"><img class="lgimg" id="brandLogo" alt="Amigo"></div>
       <h1>Amigo</h1>
@@ -298,17 +369,23 @@ body.dark .hero .hstar{filter:drop-shadow(0 0 14px rgba(90,140,230,.45))}
   </div>
 
   <div class="composer">
-    <button id="attach" class="toolbtn" title="Upload CSV data (for analysis)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg></button>
-    <button id="abBtn" class="toolbtn" title="A/B test calculator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3h5"/><path d="M10.5 3v6.2L5.3 18a1.7 1.7 0 0 0 1.5 2.6h10.4a1.7 1.7 0 0 0 1.5-2.6L13.5 9.2V3"/><path d="M7.6 14.5h8.8"/></svg></button>
-    <button id="btnLive" class="toolbtn" title="Live — include what is trending right now (free, no key)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M21 8v5h-5"/></svg></button>
-    <button id="btnImg" class="toolbtn" title="Image generation — describe a picture and the app draws it (free, no key)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.6-.3-1-.6-1.4-.3-.4-.5-.8-.5-1.3 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5c0-3.9-4-6.7-9-6.7Z"/><circle cx="7.6" cy="11" r="1.2"/><circle cx="10" cy="7.6" r="1.2"/><circle cx="14.5" cy="7.6" r="1.2"/><circle cx="16.9" cy="11" r="1.2"/></svg></button>
-    <button id="btnDeep" class="toolbtn" title="Deep Search — research the web and live sources before answering"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2"/><path d="M12 3.4a13.4 13.4 0 0 1 0 17.2 13.4 13.4 0 0 1 0-17.2Z"/></svg></button>
+    <button id="plusBtn" class="toolbtn plus" type="button" title="Add a file, or switch a mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13M5.5 12h13"/></svg></button>
     <textarea id="input" rows="1" placeholder="Ask Amigo anything…"></textarea>
     <button id="send" title="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6"/><path d="M6 12l6-6 6 6"/></svg></button>
+    <div class="menu" id="toolMenu">
+      <button id="attach" class="mitem" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7.5A2 2 0 0 1 5.5 5.5h4l2 2.5h7A2 2 0 0 1 20.5 10v6.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2Z"/></svg><span>Upload a data file (CSV)</span></button>
+      <button id="abBtn" class="mitem" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3h5"/><path d="M10.5 3v6.2L5.3 18a1.7 1.7 0 0 0 1.5 2.6h10.4a1.7 1.7 0 0 0 1.5-2.6L13.5 9.2V3"/><path d="M7.6 14.5h8.8"/></svg><span>A/B test calculator</span></button>
+      <div class="mdiv"></div>
+      <button id="btnImg" class="mitem" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-.6-.3-1-.6-1.4-.3-.4-.5-.8-.5-1.3 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5c0-3.9-4-6.7-9-6.7Z"/><circle cx="7.6" cy="11" r="1.2"/><circle cx="10" cy="7.6" r="1.2"/><circle cx="14.5" cy="7.6" r="1.2"/><circle cx="16.9" cy="11" r="1.2"/></svg><span>Create images</span><span class="chk">✓</span></button>
+      <button id="btnLive" class="mitem" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 7-7"/><path d="M21 8v5h-5"/></svg><span>Live trends</span><span class="chk">✓</span></button>
+      <button id="btnDeep" class="mitem" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2"/><path d="M12 3.4a13.4 13.4 0 0 1 0 17.2 13.4 13.4 0 0 1 0-17.2Z"/></svg><span>Deep search the web</span><span class="chk">✓</span></button>
+    </div>
   </div>
   <div class="sarvline">✦ <b>AI for All, from India</b> · your choice of free AI ✦</div>
   <input type="file" id="fileInput" accept=".csv,.txt,.tsv" style="display:none">
 </div>
+</div>
+<div class="scrim" id="scrim"></div>
 
 <div class="overlay" id="overlay">
   <div class="modal">
@@ -495,6 +572,7 @@ function histSave(){
     });
     localStorage.setItem(hKey(curSkill), JSON.stringify(h));
   } catch(e){}
+  try { sideListRender(); } catch(e){}
 }
 let _histories = {};
 function curHistory(){ return _histories[curSkill]; }
@@ -1684,6 +1762,26 @@ function syncDeepBtn(){
   b.classList.toggle("on", !!settings.deepSearch);
   b.title = settings.deepSearch ? "Deep Search is ON — the AI will research the web before answering" : "Deep Search — research the web and live sources before answering";
 }
+$("#plusBtn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const m = $("#toolMenu"); if (m) m.classList.toggle("open");
+});
+$("#toolMenu").addEventListener("click", (e) => {
+  if (e.target.closest(".mitem")) setTimeout(() => { const m = $("#toolMenu"); if (m) m.classList.remove("open"); }, 60);
+});
+document.addEventListener("click", (e) => {
+  const m = $("#toolMenu"); if (!m || !m.classList.contains("open")) return;
+  if (e.target.closest("#toolMenu") || e.target.closest("#plusBtn")) return;
+  m.classList.remove("open");
+});
+$("#btnMenu").addEventListener("click", () => {
+  const sd = $("#side"); if (sd) sd.classList.toggle("open");
+  const sc = $("#scrim"); if (sc) sc.classList.toggle("show", !!(sd && sd.classList.contains("open")));
+});
+$("#sideClose").addEventListener("click", closeDrawer);
+$("#scrim").addEventListener("click", closeDrawer);
+$("#sideNew").addEventListener("click", () => { closeDrawer(); $("#btnNew").click(); });
+$("#sideSet").addEventListener("click", () => { closeDrawer(); $("#btnSet").click(); });
 $("#btnDeep").addEventListener("click", () => {
   settings.deepSearch = !settings.deepSearch;
   saveAllSettings(); syncDeepBtn();
@@ -1796,6 +1894,30 @@ $("#btnClear").addEventListener("click", () => {
 });
 
 /* ---------------- saved chats: list + delete ---------------- */
+function sideListRender(){
+  const box = $("#sideList"); if (!box) return;
+  box.innerHTML = "";
+  const ids = Object.keys(SKILLS).filter(id => (_histories[id] || []).length > 0);
+  if (!ids.length){ box.innerHTML = '<div class="sEmpty">No chats yet — start one below.</div>'; return; }
+  ids.forEach(id => {
+    const sk = SKILLS[id] || {};
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "srow" + (id === curSkill ? " on" : "");
+    row.innerHTML = '<span class="si">' + (sk.icon || "\u{1F4AC}") + '</span><span class="sn">' + esc(sk.name || id) + '</span>';
+    row.addEventListener("click", () => openChat(id));
+    box.append(row);
+  });
+}
+function closeDrawer(){
+  const sd = $("#side"); if (sd) sd.classList.remove("open");
+  const sc = $("#scrim"); if (sc) sc.classList.remove("show");
+}
+function openChat(id){
+  if (!_histories[id]) return;
+  curSkill = id; settings.skill = id; saveAllSettings();
+  dataState = null; updateHeader(); renderAll(); chatListRender(); closeDrawer();
+}
 function chatListRender(){
   const box = $("#chatList"); if (!box) return;
   box.innerHTML = "";
@@ -1824,6 +1946,7 @@ function chatListRender(){
     dataState = null; renderAll(); chatListRender();
   });
   box.append(all);
+  sideListRender();
 }
 function deleteChat(id){
   const sk = SKILLS[id] || {};
@@ -1938,6 +2061,7 @@ function showSetupBox(){
   syncDeepBtn();
   syncImgBtn();
   syncLiveBtn();
+  sideListRender();
   const _bl = $("#brandLogo"); if (_bl) _bl.src = LOGO_URI;
   renderAll();
   if (!isSetupDone()) showSetupBox();
@@ -1957,7 +2081,7 @@ function showSetupBox(){
       b.title = t === "dark" ? "Switch to light theme" : "Switch to dark theme";
     }
   }
-  paint(read().theme === "dark" ? "dark" : "light");
+  paint(read().theme === "light" ? "light" : "dark");
   document.addEventListener("click", function(e){
     if (!e.target || !e.target.closest || !e.target.closest("#btnTheme")) return;
     var nx = document.body.classList.contains("dark") ? "light" : "dark";
