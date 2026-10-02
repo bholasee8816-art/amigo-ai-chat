@@ -801,9 +801,14 @@ function histSave(){
       if (m && typeof m.image === "string" && m.image.length > 250000){
         const c = Object.assign({}, m); delete c.image; c.imageDropped = true; return c;
       }
-      if (m && Array.isArray(m.attachments) && m.attachments.some(a => a.image && a.image.length > 250000)){
+      if (m && Array.isArray(m.attachments) && m.attachments.length){
         const c = Object.assign({}, m);
-        c.attachments = m.attachments.map(a => (a.image && a.image.length > 250000) ? Object.assign({}, a, { image: null }) : a);
+        c.attachments = m.attachments.map(a => {
+          const b = Object.assign({}, a);
+          delete b.url;                                   /* the raw file stays in this session only */
+          if (b.image && b.image.length > 250000) b.image = null;
+          return b;
+        });
         return c;
       }
       return m;
@@ -1012,7 +1017,51 @@ chatEl.addEventListener("click", function(e){
   const blk = b.closest(".codeblk"), code = blk ? blk.querySelector("code") : null;
   copyToClipboard(code ? code.textContent : "", b);
 });
-function scrollDown(){ chatEl.scrollTop = chatEl.scrollHeight; }
+function scrollDown(force){
+  if (!chatEl) return;
+  const gap = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight;
+  if (!force && gap > 170) return;          /* the reader has scrolled up — leave them alone */
+  if (force){
+    try { chatEl.scrollTo({ top: chatEl.scrollHeight, behavior: "smooth" }); }
+    catch(e){ chatEl.scrollTop = chatEl.scrollHeight; }
+  } else {
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+}
+
+/* Writes the finished answer out word by word, with the formatting already in place. */
+function typeInto(bub, text, prefixHTML){
+  return new Promise(function(resolve){
+    bub.innerHTML = (prefixHTML || "") + mdLite(text);
+    const nodes = [];
+    const walk = function(n){
+      for (let i = 0; i < n.childNodes.length; i++){
+        const c = n.childNodes[i];
+        if (c.nodeType === 3){ if (c.nodeValue) nodes.push([c, c.nodeValue]); }
+        else if (c.nodeType === 1 && !(c.classList && c.classList.contains("skillchip"))) walk(c);
+      }
+    };
+    walk(bub);
+    let total = 0;
+    nodes.forEach(function(x){ total += x[1].length; });
+    if (!total || !nodes.length){ resolve(); return; }
+    nodes.forEach(function(x){ x[0].nodeValue = ""; });
+    const per = Math.max(2, Math.ceil(total / 150));
+    let shown = 0;
+    const timer = setInterval(function(){
+      shown = Math.min(total, shown + per);
+      let left = shown;
+      for (let i = 0; i < nodes.length; i++){
+        const node = nodes[i][0], full = nodes[i][1];
+        if (left <= 0){ node.nodeValue = ""; }
+        else if (left >= full.length){ node.nodeValue = full; left -= full.length; }
+        else { node.nodeValue = full.slice(0, left); left = 0; }
+      }
+      scrollDown();
+      if (shown >= total){ clearInterval(timer); resolve(); }
+    }, 14);
+  });
+}
 
 function addMsg(role, text, opts){
   const wrap = document.createElement("div");
@@ -1547,7 +1596,7 @@ async function send(){
   const atts = _pending.slice();
   _pending = []; renderAttBar();
   if (!isRetry){ _h.push({ role: "user", content: text || "Please look at what I attached.", attachments: atts.length ? atts : undefined }); addMsg("user", text || "Please look at what I attached.", atts.length ? { attachments: atts } : null); }
-  histSave(); setBusy(true);
+  histSave(); setBusy(true); scrollDown(true);
 
   const bub = addMsg("assistant", "", { typing: true });
   const bubWrap = bub.parentElement; if (bubWrap) bubWrap.classList.add("answering");
@@ -1629,7 +1678,7 @@ async function send(){
       bub.innerHTML = "";
       for await (const part of stream){
         const t = part && (part.text || (part.message && part.message.content));
-        if (t){ reply += (typeof t === "string" ? t : String(t)); bub.textContent = reply; scrollDown(); }
+        if (t){ reply += (typeof t === "string" ? t : String(t)); }
       }
       if (!reply) throw new Error("Empty reply — please try again.");
     } else {
@@ -1654,13 +1703,12 @@ async function send(){
         bub.innerHTML = "";
         for await (const part of stream){
           const t = part && (part.text || (part.message && part.message.content));
-          if (t){ reply += (typeof t === "string" ? t : String(t)); bub.textContent = reply; scrollDown(); }
+          if (t){ reply += (typeof t === "string" ? t : String(t)); }
         }
         if (!reply) throw perr;
       }
     }
-    bub.innerHTML = mdLite(reply);
-    if (reply && curSkill !== "assistant") bub.insertAdjacentHTML("afterbegin", skillChipHTML());
+    await typeInto(bub, reply, (reply && curSkill !== "assistant") ? skillChipHTML() : "");
     if (bubWrap) addCopy(bubWrap, reply);
     if (fellBackFrom){
       const fn = document.createElement("div");
@@ -1707,6 +1755,12 @@ function renderAttBar(){
     const nm = document.createElement("span");
     nm.textContent = a.name + (a.kind === "unsupported" ? " — can't read this one" : "");
     chip.append(nm);
+    const opener = a.image || a.url;
+    if (opener){
+      chip.style.cursor = "pointer";
+      chip.title = "Open " + a.name;
+      chip.addEventListener("click", (ev) => { if (!ev.target.classList.contains("x")) window.open(opener, "_blank"); });
+    }
     const x = document.createElement("button"); x.type = "button"; x.className = "x"; x.textContent = "\u2715"; x.title = "Remove";
     x.addEventListener("click", () => { _pending.splice(i, 1); renderAttBar(); });
     chip.append(x); bar.append(chip);
@@ -1820,19 +1874,22 @@ async function handleFiles(files){
       continue;
     }
     if (file.type === "application/pdf" || /\.pdf$/i.test(file.name)){
+      let _u = ""; try { _u = await readAsDataURL(file); } catch(e){}
       let t = "";
       try { t = await pdfTextWithLib(file); } catch(e){ t = ""; }
       if (!t || t.length < 60){ try { const t2 = await extractPdfText(file); if (t2 && t2.length > (t || "").length) t = t2; } catch(e){} }
-      if (t && t.length > 60) _pending.push({ name: file.name, kind: "text", text: t.slice(0, 60000) });
-      else _pending.push({ name: file.name, kind: "unsupported" });
+      if (t && t.length > 60) _pending.push({ name: file.name, kind: "text", text: t.slice(0, 60000), url: _u });
+      else _pending.push({ name: file.name, kind: "unsupported", url: _u });
       continue;
     }
     if (TEXT_EXT.test(file.name) || /^text\//i.test(file.type)){
       const t = await readAsText(file);
-      _pending.push({ name: file.name, kind: "text", text: String(t).slice(0, 60000) });
+      let _u = ""; try { _u = await readAsDataURL(file); } catch(e){}
+      _pending.push({ name: file.name, kind: "text", text: String(t).slice(0, 60000), url: _u });
       continue;
     }
-    _pending.push({ name: file.name, kind: "unsupported" });
+    let _u2 = ""; try { _u2 = await readAsDataURL(file); } catch(e){}
+    _pending.push({ name: file.name, kind: "unsupported", url: _u2 });
   }
   renderAttBar();
 }
@@ -1844,7 +1901,8 @@ function addMsgAtt(bub, atts){
       im.addEventListener("click", () => window.open(a.image, "_blank"));
       wrap.append(im);
     } else {
-      const c = document.createElement("span"); c.className = "fchip";
+      const c = document.createElement(a.url ? "a" : "span"); c.className = "fchip";
+      if (a.url){ c.href = a.url; c.target = "_blank"; c.rel = "noopener"; c.download = a.name || "file"; }
       c.textContent = "\u{1F4CE} " + (a.name || "file") + (a.kind === "unsupported" ? " (could not be read)" : "");
       wrap.append(c);
     }
@@ -2683,10 +2741,20 @@ function showSetupBox(){
       if (Array.isArray(raw) && clean.length !== raw.length) localStorage.setItem(hKey(id), JSON.stringify(clean));
     } catch(e){}
   }
-  if (_histories.assistant && _histories.assistant.length === 0){
+  /* One-time import of a very old chat store. It must never run twice: if it did,
+     a chat the user had deleted would reappear on every visit. */
+  if (!localStorage.getItem("amigo_migrated_v1")){
     try {
-      const old = JSON.parse(localStorage.getItem(hKey("amigo")) || localStorage.getItem("amigo_history") || "[]");
-      if (Array.isArray(old) && old.length) _histories.assistant = dedupeHistory(old.filter(m => m && (m.role === "user" || m.role === "assistant") && m.content));
+      if (_histories.assistant && _histories.assistant.length === 0){
+        const old = JSON.parse(localStorage.getItem(hKey("amigo")) || localStorage.getItem("amigo_history") || "[]");
+        if (Array.isArray(old) && old.length){
+          _histories.assistant = dedupeHistory(old.filter(m => m && (m.role === "user" || m.role === "assistant") && m.content));
+          histSave();
+        }
+      }
+      localStorage.removeItem(hKey("amigo"));
+      localStorage.removeItem("amigo_history");
+      localStorage.setItem("amigo_migrated_v1", "1");
     } catch(e){}
   }
   updateHeader();
