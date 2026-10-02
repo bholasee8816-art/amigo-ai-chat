@@ -1,10 +1,10 @@
-# Amigo — a single-file AI chat app
+# प्रज्ञा (Prajna) — a single-file AI chat app
 
 A complete, browser-based AI assistant in **one HTML file**. No build step, no server, no installation — open the file and start chatting.
 
 Live demo (GitHub Pages): https://bholasee8816-art.github.io/amigo-ai-chat/
 
-![Amigo — light and dark theme](screenshot.png)
+![प्रज्ञा — light and dark theme](screenshot.png)
 
 ---
 
