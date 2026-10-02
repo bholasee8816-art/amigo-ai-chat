@@ -1,10 +1,10 @@
-# Dhruv — a single-file AI chat app
+# Galeo — a single-file AI chat app
 
 A complete, browser-based AI assistant in **one HTML file**. No build step, no server, no installation — open the file and start chatting.
 
 Live demo (GitHub Pages): https://bholasee8816-art.github.io/amigo-ai-chat/
 
-![Dhruv — light and dark theme](screenshot.png)
+![Galeo — the app](screenshot.png)
 
 ---
 
