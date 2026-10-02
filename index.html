@@ -37,7 +37,7 @@ header{display:flex; align-items:center; gap:10px; padding:12px 0 10px}
   display:grid; place-items:center; transition:background .13s, color .13s;
 }
 .hbtn:hover{background:var(--hover); color:var(--ink)}
-#chat{flex:1; overflow-y:auto; padding:10px 0 18px; scroll-behavior:smooth}
+#chat{flex:1; overflow-y:auto; padding:10px 0 18px; scroll-behavior:auto; overscroll-behavior:contain}
 #chat::-webkit-scrollbar{width:8px}
 #chat::-webkit-scrollbar-thumb{background:var(--line2); border-radius:8px}
 #chat::-webkit-scrollbar-track{background:transparent}
@@ -1016,14 +1016,31 @@ chatEl.addEventListener("click", function(e){
   const blk = b.closest(".codeblk"), code = blk ? blk.querySelector("code") : null;
   copyToClipboard(code ? code.textContent : "", b);
 });
+/* While the answer streams in, the view keeps the newest line in sight — unless the
+   reader has deliberately scrolled up to re-read something, in which case it leaves them be. */
+let _follow = true, _userScrolledAt = 0;
+if (chatEl){
+  ["wheel", "touchmove", "keydown", "mousedown"].forEach(function(ev){
+    chatEl.addEventListener(ev, function(){ _userScrolledAt = Date.now(); }, { passive: true });
+  });
+  chatEl.addEventListener("scroll", function(){
+    if (Date.now() - _userScrolledAt > 500) return;          /* a scroll we caused ourselves */
+    const gap = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight;
+    _follow = gap < 120;
+  }, { passive: true });
+}
 function scrollDown(force){
   if (!chatEl) return;
-  const gap = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight;
-  if (!force && gap > 170) return;          /* the reader has scrolled up — leave them alone */
+  if (force) _follow = true;
+  if (!_follow) return;
   if (force){
-    try { chatEl.scrollTo({ top: chatEl.scrollHeight, behavior: "smooth" }); }
-    catch(e){ chatEl.scrollTop = chatEl.scrollHeight; }
+    try {
+      chatEl.style.scrollBehavior = "smooth";
+      chatEl.scrollTop = chatEl.scrollHeight;
+      setTimeout(function(){ chatEl.style.scrollBehavior = ""; }, 600);
+    } catch(e){ chatEl.scrollTop = chatEl.scrollHeight; }
   } else {
+    chatEl.style.scrollBehavior = "auto";                    /* instant, so it never lags */
     chatEl.scrollTop = chatEl.scrollHeight;
   }
 }
