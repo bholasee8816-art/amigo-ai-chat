@@ -764,6 +764,25 @@ const AMP = String.fromCharCode(38);
 const $ = s => document.querySelector(s);
 const chatEl = $("#chat"), inputEl = $("#input"), sendEl = $("#send");
 
+/* ================================================================================
+   OPTIONAL — a key baked straight into this file.
+
+   If you would rather not type your key into Settings every time, put it between
+   the quotes below and it will be used automatically.
+
+   READ THIS FIRST: this file is public (it sits on GitHub Pages), so ANYONE who
+   opens the page or downloads the file can read whatever you write here, and can
+   spend your quota. The Settings box keeps the key inside your own browser only,
+   which is the safe way. If you do write a key here, treat it as public and
+   rotate it at the provider when you are done.
+
+   Leave everything empty to simply use the Settings box.
+   ================================================================================ */
+const BAKED_PROVIDER = "";      /* "openrouter" | "gemini" | "groq" | "openai" | "" */
+const BAKED_API_KEY  = "";      /* your key — only if you accept that it becomes public */
+const BAKED_MODEL    = "";      /* optional, e.g. "deepseek/deepseek-chat-v3-0324:free" */
+const BAKED_BASE_URL = "";      /* optional, e.g. "https://openrouter.ai/api/v1/chat/completions" */
+
 const DEFAULTS = {
   provider: "puter", model: "", apiKey: "",
   baseUrl: "https://api.openai.com/v1/chat/completions",
@@ -2775,8 +2794,14 @@ function showSetupBox(){
 /* ---------------- init ---------------- */
 (function init(){
   try {
-    const s = JSON.parse(localStorage.getItem("amigo2_settings") || "null");
+    const _raw = localStorage.getItem("amigo2_settings");
+    const s = JSON.parse(_raw || "null");
     if (s) settings = Object.assign({}, DEFAULTS, s);
+    /* anything written into the BAKED_ block above fills in what Settings has not */
+    if (BAKED_PROVIDER && !_raw) settings.provider = BAKED_PROVIDER;
+    if (BAKED_API_KEY && !settings.apiKey) settings.apiKey = BAKED_API_KEY;
+    if (BAKED_MODEL && !settings.model) settings.model = BAKED_MODEL;
+    if (BAKED_BASE_URL && !settings.baseUrl) settings.baseUrl = BAKED_BASE_URL;
   } catch(e){}
   if (!SKILLS[settings.skill] && settings.skill !== "auto") settings.skill = "auto";
   /* self-heal: key-based provider without a key -> Puter (free, no key) */
@@ -2819,7 +2844,7 @@ function showSetupBox(){
   sideListRender();
   const _bl = $("#brandLogo"); if (_bl) _bl.src = pickMark(CHAKRA_URI, CHAKRA_URI_D);
   renderAll();
-  if (!isSetupDone()) showSetupBox();
+  if (!isSetupDone() && !(BAKED_API_KEY && settings.provider !== "puter")) showSetupBox();
   inputEl.focus();
 })();
 </script>
