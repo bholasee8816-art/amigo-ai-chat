@@ -541,6 +541,20 @@ body.dark .sEmpty{color:#9aa0a6}
 body.dark .srow.on{background:#3c4043}
 body.dark .srow:hover{background:#2d3135}
 body.dark .chatrow{border-color:#3c4043}
+.keylist{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
+.keylist:empty::after{content:"No extra keys yet \2014 add one below."; color:var(--muted); font-size:.82rem}
+.keyrow{display:flex; align-items:center; gap:9px; padding:8px 11px; border:1px solid var(--line);
+  border-radius:12px; font-size:.83rem; background:var(--hover)}
+.keyrow .kl{font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:38%}
+.keyrow .kp{color:var(--muted); font-size:.76rem}
+.keyrow .kk{margin-left:auto; color:var(--muted); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:.76rem}
+.keyrow .kx{border:none; background:none; color:var(--muted); cursor:pointer; font-size:15px; line-height:1; padding:0 3px}
+.keyrow .kx:hover{color:var(--red)}
+.keyadd{display:grid; grid-template-columns:1fr 1fr; gap:7px}
+.keyadd input,.keyadd select{background:var(--field); border:1px solid transparent; border-radius:12px;
+  padding:10px 13px; font:inherit; font-size:.86rem; color:var(--ink); outline:none; min-width:0}
+.keyadd input:focus,.keyadd select:focus{border-color:var(--link)}
+.keyadd #pkAdd{grid-column:1 / -1}
 /* which skill answered */
 .skillchip{display:inline-flex; align-items:center; gap:7px; margin:0 0 12px; padding:4px 11px 4px 8px;
   border:1px solid var(--line); border-radius:20px; font-size:.73rem; color:var(--muted); width:fit-content}
@@ -721,6 +735,25 @@ body.dark .bubble a{color:var(--link)}
       <div class="hint">Your key is stored only in your browser (localStorage).</div>
     </div>
 
+    <div class="field" id="fPool">
+      <label>API keys — keep as many as you like</label>
+      <div class="keylist" id="keyList"></div>
+      <div class="keyadd">
+        <input type="text" id="pkLabel" placeholder="Name — e.g. OpenRouter 1">
+        <select id="pkProv">
+          <option value="openrouter">OpenRouter</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="groq">Groq</option>
+          <option value="openai">OpenAI-compatible</option>
+        </select>
+        <input type="password" id="pkKey" placeholder="Paste the key">
+        <input type="text" id="pkModel" placeholder="Model (optional)">
+        <input type="text" id="pkBase" placeholder="Base URL (optional)">
+        <button class="btn ghost" id="pkAdd" type="button">+ Add this key</button>
+      </div>
+      <div class="hint">Every key for the provider you pick above is used in turn — if one is rate-limited or fails, the next is tried before anything else. Keys stay in this browser only, and they work alongside the single key box.</div>
+    </div>
+
     <div class="field" id="fBase" style="display:none">
       <label>Base URL (chat completions endpoint)</label>
       <input type="text" id="inBase" placeholder="https://api.openai.com/v1/chat/completions">
@@ -837,6 +870,30 @@ function histSave(){
 }
 let _histories = {};
 function curHistory(){ return _histories[curSkill]; }
+/* the keys saved in Settings for a given provider, in the order they were added */
+function poolFor(provider){
+  const pool = (settings.keyPool || []).filter(e => e && e.key && (e.provider || "") === provider);
+  if (pool.length) return pool.map(e => ({ key: e.key, model: e.model || "", baseUrl: e.baseUrl || "", label: e.label || "" }));
+  if (settings.apiKey) return [{ key: settings.apiKey, model: settings.model || "", baseUrl: settings.baseUrl || "", label: "Settings key" }];
+  return [];
+}
+function maskKey(k){
+  const s = String(k || "");
+  return s.length <= 10 ? s.slice(0, 3) + "…" : s.slice(0, 6) + "…" + s.slice(-4);
+}
+function renderKeyList(){
+  const box = $("#keyList"); if (!box) return;
+  box.innerHTML = "";
+  (settings.keyPool || []).forEach((e, i) => {
+    const row = document.createElement("div"); row.className = "keyrow";
+    const l = document.createElement("span"); l.className = "kl"; l.textContent = e.label || ("Key " + (i + 1));
+    const p = document.createElement("span"); p.className = "kp"; p.textContent = e.provider || "";
+    const k = document.createElement("span"); k.className = "kk"; k.textContent = maskKey(e.key);
+    const x = document.createElement("button"); x.type = "button"; x.className = "kx"; x.textContent = "✕"; x.title = "Remove";
+    x.addEventListener("click", () => { settings.keyPool.splice(i, 1); saveAllSettings(); renderKeyList(); });
+    row.append(l, p, k, x); box.append(row);
+  });
+}
 function saveAllSettings(){ try { localStorage.setItem("amigo2_settings", JSON.stringify(settings)); } catch(e){} }
 
 /* ---------------- auto skill routing ---------------- */
@@ -1296,9 +1353,11 @@ function gemParts(content){
   });
   return out.length ? out : [{ text: "" }];
 }
-async function callGemini(sys, msgs){
-  const model = settings.model || "gemini-2.0-flash";
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(settings.apiKey);
+async function callGemini(sys, msgs, key, modelArg){
+  const key0 = key || settings.apiKey;
+  if (!key0) throw new Error("Please add your API key in Settings first.");
+  const model = modelArg || settings.model || "gemini-2.0-flash";
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(key0);
   const body = {
     system_instruction: { parts: [{ text: sys }] },
     contents: msgs.filter(m => m.role !== "system").map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: gemParts(m.content) }))
@@ -1311,11 +1370,12 @@ async function callGemini(sys, msgs){
   if (!txt) throw new Error("Gemini से खाली जवाब आया — model का नाम जाँचें।");
   return txt;
 }
-async function callOpenAICompatible(baseUrl, model, msgs){
-  if (!settings.apiKey) throw new Error("Please add your API key in Settings first.");
+async function callOpenAICompatible(baseUrl, model, msgs, key){
+  const key0 = key || settings.apiKey;
+  if (!key0) throw new Error("Please add your API key in Settings first.");
   const r = await fetch(baseUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + settings.apiKey },
+    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key0 },
     body: JSON.stringify({ model: model, messages: msgs })
   });
   if (!r.ok) throw new Error("API error " + r.status + ": " + (await r.text()).slice(0, 300));
@@ -1692,7 +1752,7 @@ async function send(){
   );
   let reply = "";
   let usedProvider = settings.provider;
-  if (settings.provider !== "puter" && !settings.apiKey){
+  if (settings.provider !== "puter" && !settings.apiKey && !poolFor(settings.provider).length){
     usedProvider = "puter";
     const nb = document.createElement("div");
     nb.className = "bubble";
@@ -1720,13 +1780,27 @@ async function send(){
     } else {
       /* your chosen provider runs first… */
       try {
-        if (usedProvider === "gemini"){
-          reply = await callGemini(sys, msgs);
-        } else {
-          const baseUrl = usedProvider === "groq" ? GROQ_URL : (usedProvider === "openrouter" ? OR_URL : settings.baseUrl);
-          const model = usedProvider === "groq" ? (settings.model || GROQ_MODEL) : (usedProvider === "openrouter" ? (settings.model || OR_MODEL) : (settings.model || "gpt-4o-mini"));
-          reply = await callOpenAICompatible(baseUrl, model, msgs);
+        const tries = poolFor(usedProvider);
+        if (!tries.length) throw new Error("Please add your API key in Settings first.");
+        let lastErr = null, got = false;
+        for (let ti = 0; ti < tries.length && !got; ti++){
+          const t = tries[ti];
+          if (tries.length > 1){
+            bub.innerHTML = '<span class="searching">' + dharmaHTML() + ' Trying key ' + (ti + 1) + ' of ' + tries.length +
+              (t.label ? ' \u2014 ' + esc(t.label) : '') + '\u2026</span>';
+          }
+          try {
+            if (usedProvider === "gemini"){
+              reply = await callGemini(sys, msgs, t.key, t.model);
+            } else {
+              const baseUrl = usedProvider === "groq" ? GROQ_URL : (usedProvider === "openrouter" ? OR_URL : (t.baseUrl || settings.baseUrl));
+              const model = usedProvider === "groq" ? (t.model || GROQ_MODEL) : (usedProvider === "openrouter" ? (t.model || OR_MODEL) : (t.model || "gpt-4o-mini"));
+              reply = await callOpenAICompatible(baseUrl, model, msgs, t.key);
+            }
+            got = true;
+          } catch(e){ lastErr = e; }
         }
+        if (!got) throw (lastErr || new Error("No key answered."));
       } catch(perr){
         /* …and if it does not answer, we quietly answer through free Puter instead.
            No trip to Settings, no switching — both work together. */
@@ -2583,6 +2657,7 @@ function syncSettingsFields(){
   $("#inModel").value = settings.model || "";
   $("#inKey").value = settings.apiKey || "";
   $("#inBase").value = settings.baseUrl || "";
+  renderKeyList();
   const cn = getConn();
   $("#inGKey").value = cn.gkey || ""; $("#inGCx").value = cn.gcx || ""; $("#inGhTok").value = cn.ghToken || "";
   applyProvUI();
@@ -2591,6 +2666,21 @@ document.querySelectorAll('input[name="prov"]').forEach(r => r.addEventListener(
 $("#btnSet").addEventListener("click", () => { syncSettingsFields(); chatListRender(); overlay.classList.add("open"); });
 $("#btnClose").addEventListener("click", () => overlay.classList.remove("open"));
 overlay.addEventListener("click", e => { if (e.target === overlay) overlay.classList.remove("open"); });
+$("#pkAdd").addEventListener("click", () => {
+  const key = $("#pkKey").value.trim();
+  if (!key){ $("#pkKey").focus(); return; }
+  settings.keyPool = settings.keyPool || [];
+  settings.keyPool.push({
+    label: $("#pkLabel").value.trim() || ("Key " + (settings.keyPool.length + 1)),
+    provider: $("#pkProv").value,
+    key: key,
+    model: $("#pkModel").value.trim(),
+    baseUrl: $("#pkBase").value.trim()
+  });
+  $("#pkLabel").value = ""; $("#pkKey").value = ""; $("#pkModel").value = ""; $("#pkBase").value = "";
+  saveAllSettings(); renderKeyList();
+});
+
 $("#btnSave").addEventListener("click", () => {
   settings.provider = provRadios().value;
   settings.model = $("#inModel").value.trim();
