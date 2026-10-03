@@ -744,14 +744,21 @@ body.dark .bubble a{color:var(--link)}
           <option value="openrouter">OpenRouter</option>
           <option value="gemini">Google Gemini</option>
           <option value="groq">Groq</option>
-          <option value="openai">OpenAI-compatible</option>
+          <option value="sarvam">Sarvam AI</option>
+          <option value="openai">OpenAI</option>
+          <option value="deepseek">DeepSeek</option>
+          <option value="together">Together AI</option>
+          <option value="mistral">Mistral</option>
+          <option value="xai">xAI (Grok)</option>
+          <option value="custom">Other — OpenAI-compatible</option>
         </select>
         <input type="password" id="pkKey" placeholder="Paste the key">
         <input type="text" id="pkModel" placeholder="Model (optional)">
         <input type="text" id="pkBase" placeholder="Base URL (optional)">
         <button class="btn ghost" id="pkAdd" type="button">+ Add this key</button>
       </div>
-      <div class="hint">Every key for the provider you pick above is used in turn — if one is rate-limited or fails, the next is tried before anything else. Keys stay in this browser only, and they work alongside the single key box.</div>
+      <div class="hint">Pick a provider, paste the key and press Add — the provider is chosen for you automatically, so the key starts working at once. Every key for the chosen service is used in turn: if one is rate-limited or fails, the next is tried before anything else. Keys stay in this browser only.</div>
+      <div class="hint" id="pkMsg" style="color:var(--green)"></div>
     </div>
 
     <div class="field" id="fBase" style="display:none">
@@ -876,6 +883,39 @@ function poolFor(provider){
   if (pool.length) return pool.map(e => ({ key: e.key, model: e.model || "", baseUrl: e.baseUrl || "", label: e.label || "" }));
   if (settings.apiKey) return [{ key: settings.apiKey, model: settings.model || "", baseUrl: settings.baseUrl || "", label: "Settings key" }];
   return [];
+}
+/* the providers we know how to talk to, and where each one lives */
+const KEY_PRESETS = {
+  openrouter: { provider: "openrouter", baseUrl: "" },
+  gemini:     { provider: "gemini",     baseUrl: "" },
+  groq:       { provider: "groq",       baseUrl: "" },
+  sarvam:     { provider: "openai",     baseUrl: "https://api.sarvam.ai/v1/chat/completions" },
+  openai:     { provider: "openai",     baseUrl: "https://api.openai.com/v1/chat/completions" },
+  deepseek:   { provider: "openai",     baseUrl: "https://api.deepseek.com/v1/chat/completions" },
+  together:   { provider: "openai",     baseUrl: "https://api.together.xyz/v1/chat/completions" },
+  mistral:    { provider: "openai",     baseUrl: "https://api.mistral.ai/v1/chat/completions" },
+  xai:        { provider: "openai",     baseUrl: "https://api.x.ai/v1/chat/completions" },
+  custom:     { provider: "openai",     baseUrl: "" }
+};
+const presetOf = id => KEY_PRESETS[id] || KEY_PRESETS.custom;
+function guessPreset(key){
+  const k = String(key || "").trim();
+  if (/^sk-or-/i.test(k)) return "openrouter";
+  if (/^AIza/i.test(k)) return "gemini";
+  if (/^gsk_/i.test(k)) return "groq";
+  if (/^sk-/i.test(k)) return "openai";
+  return "";
+}
+function presetLabel(id){
+  const el = $("#pkProv"); if (!el) return id;
+  const o = [].find.call(el.options, x => x.value === id);
+  return o ? o.textContent : id;
+}
+function syncPresetBase(){
+  const el = $("#pkBase"); if (!el) return;
+  const p = presetOf($("#pkProv").value);
+  if (p.baseUrl && (!el.value.trim() || el.dataset.auto)){ el.value = p.baseUrl; el.dataset.auto = "1"; }
+  else if (!p.baseUrl && el.dataset.auto){ el.value = ""; delete el.dataset.auto; }
 }
 function maskKey(k){
   const s = String(k || "");
@@ -1793,7 +1833,7 @@ async function send(){
             if (usedProvider === "gemini"){
               reply = await callGemini(sys, msgs, t.key, t.model);
             } else {
-              const baseUrl = usedProvider === "groq" ? GROQ_URL : (usedProvider === "openrouter" ? OR_URL : (t.baseUrl || settings.baseUrl));
+              const baseUrl = t.baseUrl || (usedProvider === "groq" ? GROQ_URL : (usedProvider === "openrouter" ? OR_URL : settings.baseUrl));
               const model = usedProvider === "groq" ? (t.model || GROQ_MODEL) : (usedProvider === "openrouter" ? (t.model || OR_MODEL) : (t.model || "gpt-4o-mini"));
               reply = await callOpenAICompatible(baseUrl, model, msgs, t.key);
             }
@@ -2666,19 +2706,41 @@ document.querySelectorAll('input[name="prov"]').forEach(r => r.addEventListener(
 $("#btnSet").addEventListener("click", () => { syncSettingsFields(); chatListRender(); overlay.classList.add("open"); });
 $("#btnClose").addEventListener("click", () => overlay.classList.remove("open"));
 overlay.addEventListener("click", e => { if (e.target === overlay) overlay.classList.remove("open"); });
+$("#pkProv").addEventListener("change", syncPresetBase);
+$("#pkKey").addEventListener("input", () => {
+  const g = guessPreset($("#pkKey").value);
+  if (g && $("#pkProv").value !== g){ $("#pkProv").value = g; syncPresetBase(); }
+});
+
 $("#pkAdd").addEventListener("click", () => {
+  const msg = $("#pkMsg");
   const key = $("#pkKey").value.trim();
-  if (!key){ $("#pkKey").focus(); return; }
+  if (!key){ if (msg) msg.textContent = "Paste the key first."; $("#pkKey").focus(); return; }
+  const presetId = $("#pkProv").value;
+  const preset = presetOf(presetId);
+  const baseUrl = $("#pkBase").value.trim() || preset.baseUrl;
+  if (preset.provider === "openai" && !baseUrl){
+    if (msg) msg.textContent = "This one needs its Base URL — paste it in the box, or pick a named provider above.";
+    $("#pkBase").focus(); return;
+  }
+  const label = $("#pkLabel").value.trim() || presetLabel(presetId);
   settings.keyPool = settings.keyPool || [];
   settings.keyPool.push({
-    label: $("#pkLabel").value.trim() || ("Key " + (settings.keyPool.length + 1)),
-    provider: $("#pkProv").value,
+    label: label,
+    provider: preset.provider,
     key: key,
     model: $("#pkModel").value.trim(),
-    baseUrl: $("#pkBase").value.trim()
+    baseUrl: baseUrl
   });
+  /* switch the service on, so the key is actually used straight away */
+  settings.provider = preset.provider;
+  const r = document.querySelector('input[name="prov"][value="' + preset.provider + '"]');
+  if (r) r.checked = true;
+  if (preset.provider === "openai" && baseUrl && !$("#inBase").value.trim()) $("#inBase").value = baseUrl;
   $("#pkLabel").value = ""; $("#pkKey").value = ""; $("#pkModel").value = ""; $("#pkBase").value = "";
-  saveAllSettings(); renderKeyList();
+  delete $("#pkBase").dataset.auto;
+  saveAllSettings(); renderKeyList(); syncSettingsFields();
+  if (msg) msg.textContent = "Added “" + label + "” — " + presetLabel(presetId) + " is now the chosen service.";
 });
 
 $("#btnSave").addEventListener("click", () => {
